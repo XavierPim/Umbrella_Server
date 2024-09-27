@@ -1,0 +1,21 @@
+# Visual Studio / Rider
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build Results
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio Code
+.vscode/
+
+# Other files to ignore
+*.db
+*.pdb
+*.log
+*.tmp
+*.ncrunch*
+*.sln.ide
