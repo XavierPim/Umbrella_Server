@@ -82,7 +82,7 @@
 
 ### **5. Mobile Integration**
    - The app can be accessed via mobile browsers with **PWA (Progressive Web App)** support to make it feel like a native app.
-   - Consider adding features for direct integration with the phone’s dialer app using `tel:` URLs.
+   - Considering adding features for direct integration with the phone’s dialer app using `tel:` URLs.
 
 ### **6. Real-Time Communication: SignalR / Firebase**
    - Implement **SignalR** for real-time communication between the organizer and participants. It enables live updates on changes such as proximity alerts, group changes, etc.
