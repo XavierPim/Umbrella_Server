@@ -1,4 +1,5 @@
 using System;
+using Umbrella_Server.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,12 +13,8 @@ builder.WithOrigins("http://localhost:3000")//Replace
     .AllowAnyMethod());
 });
 
-
-// Add database context and repositories
-//builder.Services.AddDbContext<AppDbContext>(options =>
-//    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-//builder.Services.AddScoped<IEventRepository, EventRepository>();
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 
 
