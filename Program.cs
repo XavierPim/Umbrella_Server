@@ -1,25 +1,43 @@
+using System;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddRazorPages();
+//Configure CORS to allow requests from React-Native App 
+builder.Services.AddCors(option
+    =>
+{
+option.AddPolicy("AllowReactApp", builder =>
+builder.WithOrigins("http://localhost:3000")//Replace 
+    .AllowAnyHeader()
+    .AllowAnyMethod());
+});
+
+
+// Add database context and repositories
+//builder.Services.AddDbContext<AppDbContext>(options =>
+//    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+//builder.Services.AddScoped<IEventRepository, EventRepository>();
+
+
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+//Configure HTTP Request pipeline
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
+app.UseMvc();
 app.UseRouting();
+app.UseCors("AllowReactNative");
 
-app.UseAuthorization();
+app.MapControllers();
 
-app.MapRazorPages();
+app.Run(); 
 
-app.Run();
