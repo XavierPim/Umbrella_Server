@@ -13,7 +13,7 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod());
 });
 
-// Configure the database context
+// Register DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
