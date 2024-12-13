@@ -16,23 +16,13 @@ namespace Umbrella_Server.Controllers
             _context = context;
         }
 
-        // GET: api/Group
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Group>>> GetGroups()
-        {
-            var groups = await _context.Groups
-                .Include(g => g.Members)
-                .ThenInclude(m => m.User)
-                .ToListAsync();
-            return Ok(groups);
-        }
-
-        // GET: api/Group/{groupId}
+        // ✅ GET: api/Group/{groupId}
         [HttpGet("{groupId}")]
         public async Task<ActionResult<Group>> GetGroup(Guid groupId)
         {
             var group = await _context.Groups
                                       .Include(g => g.Members)
+                                      .ThenInclude(m => m.User) // Include user details for each member
                                       .FirstOrDefaultAsync(g => g.GroupID == groupId);
 
             if (group == null)
@@ -43,33 +33,47 @@ namespace Umbrella_Server.Controllers
             return Ok(group);
         }
 
-        // POST: api/Group
+        // ✅ POST: api/Group (Create Group)
         [HttpPost]
         public async Task<ActionResult<Group>> CreateGroup(Group group)
         {
+            // 1️⃣ Validate the Organizer exists
+            var organizer = await _context.Users.FindAsync(group.OrganizerID);
+            if (organizer == null)
+            {
+                return NotFound(new { Message = $"Organizer with ID {group.OrganizerID} not found." });
+            }
+
+            // 2️⃣ Set default values and create GroupLink if not set
             group.GroupID = Guid.NewGuid();
             group.CreatedAt = DateTime.UtcNow;
             group.UpdatedAt = DateTime.UtcNow;
 
+            // Check and ensure GroupLink is set, if not, generate it
+            if (string.IsNullOrWhiteSpace(group.GroupLink))
+            {
+                group.GroupLink = Group.GenerateGroupCode(8); // Generate an 8-character GroupLink
+            }
+
+            group.Organizer = organizer; // 👈 Attach User object to Organizer navigation property
+
+            // 3️⃣ Add the Group to the database
             _context.Groups.Add(group);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetGroup), new { groupId = group.GroupID }, group);
-        }
-
-        // PUT: api/Group/{groupId}
-        [HttpPut("{groupId}")]
-        public async Task<IActionResult> UpdateGroup(Guid groupId, Group updatedGroup)
-        {
-            if (groupId != updatedGroup.GroupID)
+            // 4️⃣ Add the Organizer as the first Member of the group with Organizer and Attendee roles
+            var organizerMember = new Member
             {
-                return BadRequest(new { Message = "Group ID in the URL does not match the body." });
-            }
+                GroupID = group.GroupID,
+                UserID = group.OrganizerID, // Organizer becomes the first member
+                Roles = (int)UserRole.Organizer | (int)UserRole.Attendee // Organizer and Attendee roles
+            };
 
-            _context.Entry(updatedGroup).State = EntityState.Modified;
+            _context.Members.Add(organizerMember);
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            // 5️⃣ Return the newly created group with the "GetGroup" action
+            return CreatedAtAction(nameof(GetGroup), new { groupId = group.GroupID }, group);
         }
 
         // ✅ GET: api/Group/{groupId}/members
@@ -84,67 +88,45 @@ namespace Umbrella_Server.Controllers
             return Ok(members);
         }
 
-        // ✅ POST: api/Group/{groupId}/members
+        // ✅ POST: api/Group/{groupId}/members (Batch create members)
         [HttpPost("{groupId}/members")]
-        public async Task<ActionResult<Member>> AddMember(Guid groupId, [FromBody] Member member)
+        public async Task<ActionResult<IEnumerable<Member>>> AddMembers(Guid groupId, [FromBody] List<Member> members)
         {
-            member.GroupID = groupId;
-
-            // Check if user is already a member of the group
-            var existingMember = await _context.Members
-                .FirstOrDefaultAsync(m => m.GroupID == groupId && m.UserID == member.UserID);
-
-            if (existingMember != null)
+            var group = await _context.Groups.FindAsync(groupId);
+            if (group == null)
             {
-                return Conflict(new { Message = "User is already a member of the group." });
+                return NotFound(new { Message = $"Group with ID {groupId} not found." });
             }
 
-            member.Roles = (int)UserRole.Attendee; // Default role
-            _context.Members.Add(member);
-            await _context.SaveChangesAsync();
+            var addedMembers = new List<Member>();
 
-            return CreatedAtAction(nameof(GetMembers), new { groupId }, member);
-        }
-
-        // ✅ DELETE: api/Group/{groupId}/members/{userId}
-        [HttpDelete("{groupId}/members/{userId}")]
-        public async Task<IActionResult> RemoveMember(Guid groupId, Guid userId)
-        {
-            var member = await _context.Members
-                .FirstOrDefaultAsync(m => m.GroupID == groupId && m.UserID == userId);
-
-            if (member == null)
+            foreach (var member in members)
             {
-                return NotFound(new { Message = "Member not found in the group." });
-            }
+                member.GroupID = groupId;
 
-            _context.Members.Remove(member);
-            await _context.SaveChangesAsync();
+                // Check if the user is already a member of the group
+                var existingMember = await _context.Members
+                    .FirstOrDefaultAsync(m => m.GroupID == groupId && m.UserID == member.UserID);
 
-            return NoContent();
-        }
+                if (existingMember != null)
+                {
+                    continue; // Skip users that are already members
+                }
 
-        // ✅ PUT: api/Group/{groupId}/members/{userId}/roles
-        [HttpPut("{groupId}/members/{userId}/roles")]
-        public async Task<IActionResult> UpdateMemberRoles(Guid groupId, Guid userId, [FromBody] UserRole[] roles)
-        {
-            var member = await _context.Members
-                .FirstOrDefaultAsync(m => m.GroupID == groupId && m.UserID == userId);
+                // Default role is Attendee unless otherwise specified
+                if (member.Roles == 0)
+                {
+                    member.Roles = (int)UserRole.Attendee;
+                }
 
-            if (member == null)
-            {
-                return NotFound(new { Message = "Member not found in the group." });
-            }
-
-            // Reset roles, then add roles based on the input
-            member.Roles = 0;
-            foreach (var role in roles)
-            {
-                member.Roles |= (int)role; // Add role using bitwise OR
+                // Add to context
+                _context.Members.Add(member);
+                addedMembers.Add(member);
             }
 
             await _context.SaveChangesAsync();
-            return Ok(new { Message = "Roles updated successfully.", CurrentRoles = member.Roles });
+
+            return Ok(new { Message = "Members added successfully.", Members = addedMembers });
         }
     }
 }

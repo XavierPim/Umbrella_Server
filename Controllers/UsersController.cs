@@ -42,26 +42,39 @@ namespace Umbrella_Server.Controllers
         [HttpPost]
         public async Task<ActionResult<User>> CreateUser([FromBody] User user)
         {
-            user.UserID = Guid.NewGuid(); // Ensure UUID is unique
-            user.DateCreated = DateTime.UtcNow;
-
-            if (_context.Users.Any(u => u.Email == user.Email))
-            {
-                return Conflict(new { Message = "User with this email already exists." });
-            }
-
-            _context.Users.Add(user);
             try
             {
+                // Validate required fields
+                if (string.IsNullOrEmpty(user.Email) || string.IsNullOrEmpty(user.Name))
+                {
+                    return BadRequest(new { Message = "Name and Email are required fields." });
+                }
+
+                // Check if user email already exists
+                if (_context.Users.Any(u => u.Email == user.Email))
+                {
+                    return Conflict(new { Message = "User with this email already exists." });
+                }
+
+                // Assign UUID but do not assign DateCreated (SQL will handle it)
+                user.UserID = Guid.NewGuid();
+
+                // Add the user to the database
+                _context.Users.Add(user);
                 await _context.SaveChangesAsync();
+
+                return CreatedAtAction(nameof(GetUser), new { id = user.UserID }, user);
             }
             catch (DbUpdateException ex)
             {
-                return BadRequest(new { Message = "Failed to create user.", Error = ex.Message });
+                return BadRequest(new
+                {
+                    Message = "Failed to create user.",
+                    Error = ex.InnerException?.Message ?? ex.Message
+                });
             }
-
-            return CreatedAtAction(nameof(GetUser), new { id = user.UserID }, user);
         }
+
 
         // PUT: api/User/{id}
         [HttpPut("{id}")]
@@ -80,7 +93,7 @@ namespace Umbrella_Server.Controllers
 
             existingUser.Name = updatedUser.Name;
             existingUser.Email = updatedUser.Email;
-            existingUser.Roles = updatedUser.Roles; 
+            existingUser.Roles = updatedUser.Roles;
 
             await _context.SaveChangesAsync();
 

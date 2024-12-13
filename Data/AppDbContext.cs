@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Umbrella_Server.Models;
 
 namespace Umbrella_Server.Data
@@ -17,6 +17,11 @@ namespace Umbrella_Server.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // ✅ SQL Server default for DateCreated
+            modelBuilder.Entity<User>()
+                .Property(u => u.DateCreated)
+                .HasDefaultValueSql("GETUTCDATE()"); // Use GETUTCDATE() as the default value
 
             // Unique constraints
             modelBuilder.Entity<User>()
