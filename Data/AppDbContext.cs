@@ -12,23 +12,46 @@ namespace Umbrella_Server.Data
         public DbSet<Member> Members { get; set; } = null!;
         public DbSet<Admin> Admins { get; set; } = null!;
         public DbSet<Attendee> Attendees { get; set; } = null!;
+        public DbSet<MemberLocation> MemberLocations { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
             // Unique constraints
-            modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
-            modelBuilder.Entity<Group>().HasIndex(g => g.GroupLink).IsUnique();
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
 
-            // Composite unique key to prevent multiple membership records for same UserID in Group
-            modelBuilder.Entity<Member>().HasIndex(m => new { m.GroupID, m.UserID }).IsUnique();
+            modelBuilder.Entity<Group>()
+                .HasIndex(g => g.GroupLink)
+                .IsUnique();
 
-            // Bitmask for Admin permissions
-            modelBuilder.Entity<Admin>().Property(a => a.Permissions).HasDefaultValue(0);
+            // Composite primary key for Member (GroupID + UserID)
+            modelBuilder.Entity<Member>()
+                .HasKey(m => new { m.GroupID, m.UserID });
 
-            // Spatial index for user location using SQL Server GEOGRAPHY
-            modelBuilder.Entity<User>().HasIndex(u => u.Location);
+            // Composite primary key for MemberLocation (GroupID + UserID + TimeStamp)
+            modelBuilder.Entity<MemberLocation>()
+                .HasKey(ml => new { ml.GroupID, ml.UserID, ml.TimeStamp });
+
+            // Set Latitude and Longitude as required properties for MemberLocation
+            modelBuilder.Entity<MemberLocation>()
+                .Property(ml => ml.Latitude)
+                .IsRequired();
+
+            modelBuilder.Entity<MemberLocation>()
+                .Property(ml => ml.Longitude)
+                .IsRequired();
+
+            // Set Latitude and Longitude as optional properties for User (user may not share location)
+            modelBuilder.Entity<User>()
+                .Property(u => u.Latitude)
+                .HasColumnType("float");
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.Longitude)
+                .HasColumnType("float");
 
             // Relationships
             modelBuilder.Entity<User>()
@@ -38,25 +61,34 @@ namespace Umbrella_Server.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<User>()
-                .HasMany(u => u.Admins)
-                .WithOne(a => a.User)
-                .HasForeignKey(a => a.AdminID);
-
-            modelBuilder.Entity<User>()
                 .HasOne(u => u.AttendeeInfo)
                 .WithOne(a => a.User)
-                .HasForeignKey<Attendee>(a => a.UserID);
+                .HasForeignKey<Attendee>(a => a.UserID)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Group>()
                 .HasOne(g => g.Organizer)
                 .WithMany()
-                .HasForeignKey(g => g.OrganizerID);
+                .HasForeignKey(g => g.OrganizerID)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Group>()
                 .HasMany(g => g.Members)
                 .WithOne(m => m.Group)
                 .HasForeignKey(m => m.GroupID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<MemberLocation>()
+                .HasOne(ml => ml.User)
+                .WithMany()
+                .HasForeignKey(ml => ml.UserID)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<MemberLocation>()
+                .HasOne(ml => ml.Group)
+                .WithMany()
+                .HasForeignKey(ml => ml.GroupID)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

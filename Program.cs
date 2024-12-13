@@ -13,19 +13,24 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod());
 });
 
-// Register DbContext
+// Register DbContext with NetTopologySuite for GEOGRAPHY support
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        sqlOptions => sqlOptions.UseNetTopologySuite()
+    )
+);
 
+// Register controllers
 builder.Services.AddControllers();
 
 var app = builder.Build();
 
-// Configure HTTP Request pipeline
+// Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
-    app.UseHsts();
+    app.UseHsts(); // Add HTTP Strict Transport Security headers
 }
 
 app.UseHttpsRedirection();
@@ -35,10 +40,12 @@ app.UseRouting();
 
 // CORS must be placed after UseRouting and before UseAuthorization
 app.UseCors("AllowReactApp");
+
+// Authentication and Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Modern endpoint routing: map controllers
+// Endpoint routing for controllers
 app.MapControllers();
 
 app.Run();

@@ -20,8 +20,9 @@ namespace Umbrella_Server.Migrations
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Email = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     DateCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Location = table.Column<string>(type: "nvarchar(450)", nullable: true),
-                    GroupLink = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    Latitude = table.Column<double>(type: "float", nullable: true),
+                    Longitude = table.Column<double>(type: "float", nullable: true),
+                    GroupLink = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -32,15 +33,15 @@ namespace Umbrella_Server.Migrations
                 name: "Admins",
                 columns: table => new
                 {
-                    AdminID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Permissions = table.Column<int>(type: "int", nullable: false, defaultValue: 0)
+                    UserID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Permissions = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Admins", x => x.AdminID);
+                    table.PrimaryKey("PK_Admins", x => x.UserID);
                     table.ForeignKey(
-                        name: "FK_Admins_Users_AdminID",
-                        column: x => x.AdminID,
+                        name: "FK_Admins_Users_UserID",
+                        column: x => x.UserID,
                         principalTable: "Users",
                         principalColumn: "UserID",
                         onDelete: ReferentialAction.Cascade);
@@ -53,7 +54,7 @@ namespace Umbrella_Server.Migrations
                     UserID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     CanMessage = table.Column<bool>(type: "bit", nullable: false),
                     CanCall = table.Column<bool>(type: "bit", nullable: false),
-                    RsvpStatus = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    RsvpStatus = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -73,7 +74,7 @@ namespace Umbrella_Server.Migrations
                     GroupID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     EventName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    GroupLink = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    GroupLink = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     OrganizerID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     StartTime = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ExpireTime = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -88,27 +89,54 @@ namespace Umbrella_Server.Migrations
                         column: x => x.OrganizerID,
                         principalTable: "Users",
                         principalColumn: "UserID",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MemberLocations",
+                columns: table => new
+                {
+                    UserID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    GroupID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TimeStamp = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Latitude = table.Column<double>(type: "float", nullable: false),
+                    Longitude = table.Column<double>(type: "float", nullable: false),
+                    DistanceFromOrganizer = table.Column<float>(type: "real", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MemberLocations", x => new { x.GroupID, x.UserID, x.TimeStamp });
+                    table.ForeignKey(
+                        name: "FK_MemberLocations_Groups_GroupID",
+                        column: x => x.GroupID,
+                        principalTable: "Groups",
+                        principalColumn: "GroupID",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_MemberLocations_Users_UserID",
+                        column: x => x.UserID,
+                        principalTable: "Users",
+                        principalColumn: "UserID",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
                 name: "Members",
                 columns: table => new
                 {
-                    MemberID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     GroupID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     UserID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     RoleID = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Members", x => x.MemberID);
+                    table.PrimaryKey("PK_Members", x => new { x.GroupID, x.UserID });
                     table.ForeignKey(
                         name: "FK_Members_Groups_GroupID",
                         column: x => x.GroupID,
                         principalTable: "Groups",
                         principalColumn: "GroupID",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_Members_Users_UserID",
                         column: x => x.UserID,
@@ -129,10 +157,9 @@ namespace Umbrella_Server.Migrations
                 column: "OrganizerID");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Members_GroupID_UserID",
-                table: "Members",
-                columns: new[] { "GroupID", "UserID" },
-                unique: true);
+                name: "IX_MemberLocations_UserID",
+                table: "MemberLocations",
+                column: "UserID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Members_UserID",
@@ -144,11 +171,6 @@ namespace Umbrella_Server.Migrations
                 table: "Users",
                 column: "Email",
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Users_Location",
-                table: "Users",
-                column: "Location");
         }
 
         /// <inheritdoc />
@@ -159,6 +181,9 @@ namespace Umbrella_Server.Migrations
 
             migrationBuilder.DropTable(
                 name: "Attendees");
+
+            migrationBuilder.DropTable(
+                name: "MemberLocations");
 
             migrationBuilder.DropTable(
                 name: "Members");
