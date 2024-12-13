@@ -53,6 +53,11 @@ namespace Umbrella_Server.Data
                 .Property(u => u.Longitude)
                 .HasColumnType("float");
 
+            // Set default value for Roles in User (default role is Attendee)
+            modelBuilder.Entity<User>()
+                .Property(u => u.Roles)
+                .HasDefaultValue((int)UserRole.Attendee); // Default to Attendee role
+
             // Relationships
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Members)

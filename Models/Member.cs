@@ -13,8 +13,9 @@ namespace Umbrella_Server.Models
         [ForeignKey("User")]
         public Guid UserID { get; set; } // FK to User Table
 
+        // Store multiple roles for the user in this group as a bitmask
         [Required]
-        public required UserRole RoleID { get; set; } 
+        public int Roles { get; set; } = (int)UserRole.Attendee; // Default role is Attendee
 
         // Navigation Properties
         [Required]

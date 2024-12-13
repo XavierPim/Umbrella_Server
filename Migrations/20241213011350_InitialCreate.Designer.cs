@@ -12,7 +12,7 @@ using Umbrella_Server.Data;
 namespace Umbrella_Server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241213003209_InitialCreate")]
+    [Migration("20241213011350_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -110,7 +110,7 @@ namespace Umbrella_Server.Migrations
                     b.Property<Guid>("UserID")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("RoleID")
+                    b.Property<int>("Roles")
                         .HasColumnType("int");
 
                     b.HasKey("GroupID", "UserID");
@@ -175,8 +175,10 @@ namespace Umbrella_Server.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("RoleID")
-                        .HasColumnType("int");
+                    b.Property<int>("Roles")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(2);
 
                     b.HasKey("UserID");
 

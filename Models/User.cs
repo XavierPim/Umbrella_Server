@@ -9,18 +9,19 @@ namespace Umbrella_Server.Models
         public Guid UserID { get; set; } = Guid.NewGuid();
 
         [Required]
-        public required UserRole RoleID { get; set; }
-
-        [Required]
         public required string Name { get; set; }
 
         [Required]
+        [EmailAddress]
         public required string Email { get; set; }
 
         [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
         public DateTime DateCreated { get; set; }
 
-        // Replace Point with Latitude and Longitude (simple doubles)
+        [Required]
+        public int Roles { get; set; } = (int)UserRole.Attendee; // Default role is Attendee
+
+        // Location tracking using simple latitude/longitude
         public double? Latitude { get; set; }
         public double? Longitude { get; set; }
 
@@ -28,7 +29,6 @@ namespace Umbrella_Server.Models
 
         // Navigation Properties
         public ICollection<Member> Members { get; set; } = new List<Member>();
-
         public Attendee? AttendeeInfo { get; set; }
     }
 }

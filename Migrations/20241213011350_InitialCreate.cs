@@ -16,10 +16,10 @@ namespace Umbrella_Server.Migrations
                 columns: table => new
                 {
                     UserID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RoleID = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Email = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     DateCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Roles = table.Column<int>(type: "int", nullable: false, defaultValue: 2),
                     Latitude = table.Column<double>(type: "float", nullable: true),
                     Longitude = table.Column<double>(type: "float", nullable: true),
                     GroupLink = table.Column<string>(type: "nvarchar(max)", nullable: false)
@@ -126,7 +126,7 @@ namespace Umbrella_Server.Migrations
                 {
                     GroupID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     UserID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RoleID = table.Column<int>(type: "int", nullable: false)
+                    Roles = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
