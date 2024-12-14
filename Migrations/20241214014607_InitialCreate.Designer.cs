@@ -12,7 +12,7 @@ using Umbrella_Server.Data;
 namespace Umbrella_Server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241213022448_InitialCreate")]
+    [Migration("20241214014607_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -31,7 +31,9 @@ namespace Umbrella_Server.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Permissions")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.HasKey("UserID");
 
@@ -44,13 +46,19 @@ namespace Umbrella_Server.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("CanCall")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("CanMessage")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<int>("RsvpStatus")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.HasKey("UserID");
 
@@ -65,7 +73,8 @@ namespace Umbrella_Server.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -84,6 +93,14 @@ namespace Umbrella_Server.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<string>("MeetingPlace")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<DateTime>("MeetingTime")
+                        .HasColumnType("datetime2");
+
                     b.Property<Guid>("OrganizerID")
                         .HasColumnType("uniqueidentifier");
 
@@ -92,7 +109,8 @@ namespace Umbrella_Server.Migrations
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.HasKey("GroupID");
 
@@ -122,34 +140,7 @@ namespace Umbrella_Server.Migrations
                     b.ToTable("Members");
                 });
 
-            modelBuilder.Entity("Umbrella_Server.Models.MemberLocation", b =>
-                {
-                    b.Property<Guid>("GroupID")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("UserID")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("TimeStamp")
-                        .HasColumnType("datetime2");
-
-                    b.Property<float?>("DistanceFromOrganizer")
-                        .HasColumnType("real");
-
-                    b.Property<double>("Latitude")
-                        .HasColumnType("float");
-
-                    b.Property<double>("Longitude")
-                        .HasColumnType("float");
-
-                    b.HasKey("GroupID", "UserID", "TimeStamp");
-
-                    b.HasIndex("UserID");
-
-                    b.ToTable("MemberLocations");
-                });
-
-            modelBuilder.Entity("Umbrella_Server.Models.User", b =>
+            modelBuilder.Entity("User", b =>
                 {
                     b.Property<Guid>("UserID")
                         .ValueGeneratedOnAdd()
@@ -178,10 +169,9 @@ namespace Umbrella_Server.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("Roles")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(2);
+                    b.Property<string>("Roles")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("UserID");
 
@@ -193,9 +183,9 @@ namespace Umbrella_Server.Migrations
 
             modelBuilder.Entity("Umbrella_Server.Models.Admin", b =>
                 {
-                    b.HasOne("Umbrella_Server.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserID")
+                    b.HasOne("User", "User")
+                        .WithOne("AdminInfo")
+                        .HasForeignKey("Umbrella_Server.Models.Admin", "UserID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -204,7 +194,7 @@ namespace Umbrella_Server.Migrations
 
             modelBuilder.Entity("Umbrella_Server.Models.Attendee", b =>
                 {
-                    b.HasOne("Umbrella_Server.Models.User", "User")
+                    b.HasOne("User", "User")
                         .WithOne("AttendeeInfo")
                         .HasForeignKey("Umbrella_Server.Models.Attendee", "UserID")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -215,7 +205,7 @@ namespace Umbrella_Server.Migrations
 
             modelBuilder.Entity("Umbrella_Server.Models.Group", b =>
                 {
-                    b.HasOne("Umbrella_Server.Models.User", "Organizer")
+                    b.HasOne("User", "Organizer")
                         .WithMany()
                         .HasForeignKey("OrganizerID")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -232,27 +222,8 @@ namespace Umbrella_Server.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Umbrella_Server.Models.User", "User")
+                    b.HasOne("User", "User")
                         .WithMany("Members")
-                        .HasForeignKey("UserID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Group");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Umbrella_Server.Models.MemberLocation", b =>
-                {
-                    b.HasOne("Umbrella_Server.Models.Group", "Group")
-                        .WithMany()
-                        .HasForeignKey("GroupID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Umbrella_Server.Models.User", "User")
-                        .WithMany()
                         .HasForeignKey("UserID")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -267,8 +238,10 @@ namespace Umbrella_Server.Migrations
                     b.Navigation("Members");
                 });
 
-            modelBuilder.Entity("Umbrella_Server.Models.User", b =>
+            modelBuilder.Entity("User", b =>
                 {
+                    b.Navigation("AdminInfo");
+
                     b.Navigation("AttendeeInfo");
 
                     b.Navigation("Members");

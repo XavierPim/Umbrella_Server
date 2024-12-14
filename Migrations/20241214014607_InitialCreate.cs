@@ -19,7 +19,7 @@ namespace Umbrella_Server.Migrations
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Email = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     DateCreated = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
-                    Roles = table.Column<int>(type: "int", nullable: false, defaultValue: 2),
+                    Roles = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Latitude = table.Column<double>(type: "float", nullable: true),
                     Longitude = table.Column<double>(type: "float", nullable: true),
                     GroupLink = table.Column<string>(type: "nvarchar(max)", nullable: false)
@@ -34,7 +34,7 @@ namespace Umbrella_Server.Migrations
                 columns: table => new
                 {
                     UserID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Permissions = table.Column<int>(type: "int", nullable: false)
+                    Permissions = table.Column<int>(type: "int", nullable: false, defaultValue: 0)
                 },
                 constraints: table =>
                 {
@@ -52,9 +52,9 @@ namespace Umbrella_Server.Migrations
                 columns: table => new
                 {
                     UserID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CanMessage = table.Column<bool>(type: "bit", nullable: false),
-                    CanCall = table.Column<bool>(type: "bit", nullable: false),
-                    RsvpStatus = table.Column<int>(type: "int", nullable: false)
+                    CanMessage = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    CanCall = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    RsvpStatus = table.Column<int>(type: "int", nullable: false, defaultValue: 0)
                 },
                 constraints: table =>
                 {
@@ -78,8 +78,10 @@ namespace Umbrella_Server.Migrations
                     OrganizerID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     StartTime = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ExpireTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    MeetingTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    MeetingPlace = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
                 },
                 constraints: table =>
                 {
@@ -87,34 +89,6 @@ namespace Umbrella_Server.Migrations
                     table.ForeignKey(
                         name: "FK_Groups_Users_OrganizerID",
                         column: x => x.OrganizerID,
-                        principalTable: "Users",
-                        principalColumn: "UserID",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "MemberLocations",
-                columns: table => new
-                {
-                    UserID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    GroupID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TimeStamp = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Latitude = table.Column<double>(type: "float", nullable: false),
-                    Longitude = table.Column<double>(type: "float", nullable: false),
-                    DistanceFromOrganizer = table.Column<float>(type: "real", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_MemberLocations", x => new { x.GroupID, x.UserID, x.TimeStamp });
-                    table.ForeignKey(
-                        name: "FK_MemberLocations_Groups_GroupID",
-                        column: x => x.GroupID,
-                        principalTable: "Groups",
-                        principalColumn: "GroupID",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_MemberLocations_Users_UserID",
-                        column: x => x.UserID,
                         principalTable: "Users",
                         principalColumn: "UserID",
                         onDelete: ReferentialAction.Restrict);
@@ -157,11 +131,6 @@ namespace Umbrella_Server.Migrations
                 column: "OrganizerID");
 
             migrationBuilder.CreateIndex(
-                name: "IX_MemberLocations_UserID",
-                table: "MemberLocations",
-                column: "UserID");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Members_UserID",
                 table: "Members",
                 column: "UserID");
@@ -181,9 +150,6 @@ namespace Umbrella_Server.Migrations
 
             migrationBuilder.DropTable(
                 name: "Attendees");
-
-            migrationBuilder.DropTable(
-                name: "MemberLocations");
 
             migrationBuilder.DropTable(
                 name: "Members");

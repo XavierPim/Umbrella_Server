@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Umbrella_Server.Data;
 using Umbrella_Server.Models;
@@ -44,22 +44,17 @@ namespace Umbrella_Server.Controllers
         {
             try
             {
-                // Validate required fields
                 if (string.IsNullOrEmpty(user.Email) || string.IsNullOrEmpty(user.Name))
                 {
                     return BadRequest(new { Message = "Name and Email are required fields." });
                 }
 
-                // Check if user email already exists
                 if (_context.Users.Any(u => u.Email == user.Email))
                 {
                     return Conflict(new { Message = "User with this email already exists." });
                 }
 
-                // Assign UUID but do not assign DateCreated (SQL will handle it)
                 user.UserID = Guid.NewGuid();
-
-                // Add the user to the database
                 _context.Users.Add(user);
                 await _context.SaveChangesAsync();
 
@@ -74,7 +69,6 @@ namespace Umbrella_Server.Controllers
                 });
             }
         }
-
 
         // PUT: api/User/{id}
         [HttpPut("{id}")]
@@ -116,10 +110,16 @@ namespace Umbrella_Server.Controllers
             return NoContent();
         }
 
+
         // POST: api/User/{id}/roles (Add roles to a user)
         [HttpPost("{id}/roles")]
         public async Task<IActionResult> AddRolesToUser(Guid id, [FromBody] UserRole[] roles)
         {
+            if (roles == null || !roles.Any())
+            {
+                return BadRequest(new { Message = "The roles field is required and must contain at least one role." });
+            }
+
             var user = await _context.Users.FindAsync(id);
             if (user == null)
             {
@@ -128,12 +128,18 @@ namespace Umbrella_Server.Controllers
 
             foreach (var role in roles)
             {
-                user.Roles |= (int)role; // Add role using bitwise OR
+                if (!user.Roles.Contains(role))
+                {
+                    user.Roles.Add(role); // ✅ Add role directly
+                }
             }
 
             await _context.SaveChangesAsync();
-            return Ok(new { Message = "Roles successfully added.", CurrentRoles = user.Roles });
+            return Ok(new { Message = "Roles successfully added.", CurrentRoles = user.Roles.Select(r => r.ToString()).ToList() });
         }
+
+
+
 
         // DELETE: api/User/{id}/roles (Remove roles from a user)
         [HttpDelete("{id}/roles")]
@@ -147,14 +153,18 @@ namespace Umbrella_Server.Controllers
 
             foreach (var role in roles)
             {
-                user.Roles &= ~(int)role; // Remove role using bitwise AND + NOT
+                if (user.Roles.Contains(role))
+                {
+                    user.Roles.Remove(role); // ✅ Remove role from the list
+                }
             }
 
             await _context.SaveChangesAsync();
-            return Ok(new { Message = "Roles successfully removed.", CurrentRoles = user.Roles });
+            return Ok(new { Message = "Roles successfully removed.", CurrentRoles = user.Roles.Select(r => r.ToString()).ToList() });
         }
 
-        // GET: api/User/{id}/roles (Get all roles for a user)
+
+        // GET: api/User/{id}/role (Get the role for a user)
         [HttpGet("{id}/roles")]
         public async Task<IActionResult> GetUserRoles(Guid id)
         {
@@ -164,17 +174,11 @@ namespace Umbrella_Server.Controllers
                 return NotFound(new { Message = $"User with ID {id} not found." });
             }
 
-            var roles = Enum.GetValues(typeof(UserRole))
-                            .Cast<UserRole>()
-                            .Where(role => (user.Roles & (int)role) != 0)
-                            .ToList();
-
-            return Ok(new { Roles = roles });
+            return Ok(new { Roles = user.Roles.Select(r => r.ToString()).ToList() });
         }
 
-        private bool UserExists(Guid id)
-        {
-            return _context.Users.Any(u => u.UserID == id);
-        }
+
+
+
     }
 }

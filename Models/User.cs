@@ -1,34 +1,32 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations;
+using Umbrella_Server.Models;
 
-namespace Umbrella_Server.Models
+public class User
 {
-    public class User
-    {
-        [Key]
-        public Guid UserID { get; set; } = Guid.NewGuid();
+    [Key]
+    public Guid UserID { get; set; } = Guid.NewGuid();
 
-        [Required]
-        public required string Name { get; set; }
+    [Required]
+    public required string Name { get; set; }
 
-        [Required]
-        [EmailAddress]
-        public required string Email { get; set; }
+    [Required]
+    [EmailAddress]
+    public required string Email { get; set; }
 
-        // ✅ Automatically set by SQL Server using GETUTCDATE()
-        [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
-        public DateTime DateCreated { get; set; }
+    [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
+    public DateTime DateCreated { get; set; }
 
-        [Required]
-        public int Roles { get; set; } = (int)UserRole.Attendee; // Default role is Attendee
+    [Required]
+    public List<UserRole> Roles { get; set; } = new List<UserRole> { UserRole.Attendee };
 
-        public double? Latitude { get; set; }
-        public double? Longitude { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
 
-        public string GroupLink { get; set; } = string.Empty;
+    public string GroupLink { get; set; } = string.Empty;
 
-        // Navigation Properties
-        public ICollection<Member> Members { get; set; } = new List<Member>();
-        public Attendee? AttendeeInfo { get; set; }
-    }
+    // Navigation Properties
+    public ICollection<Member> Members { get; set; } = new List<Member>();
+    public Attendee? AttendeeInfo { get; set; }
+    public Admin? AdminInfo { get; set; }
 }

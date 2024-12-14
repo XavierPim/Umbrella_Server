@@ -15,21 +15,18 @@ namespace Umbrella_Server.Models
     public class Attendee
     {
         [Key]
-        public Guid UserID { get; set; }
+        public Guid UserID { get; set; } // Primary key and FK to User table
 
         [Required]
-        [ForeignKey("UserID")]
-        public User User { get; set; } = null!; // Ensures User link is required
+        public User User { get; set; } = null!; // Required link to the User
 
         [Required]
-        [DefaultValue(false)]
-        public bool CanMessage { get; set; } = false;
+        public bool CanMessage { get; set; } = false; // Default is false
 
         [Required]
-        [DefaultValue(false)]
-        public bool CanCall { get; set; } = false;
+        public bool CanCall { get; set; } = false; // Default is false
 
         [Required]
-        public RsvpStatus RsvpStatus { get; set; } = RsvpStatus.Pending; // Store as "Pending", "Accepted", "Declined"
+        public RsvpStatus RsvpStatus { get; set; } = RsvpStatus.Pending; // Default is Pending
     }
 }

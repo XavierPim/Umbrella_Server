@@ -16,11 +16,10 @@ namespace Umbrella_Server.Models
         [MaxLength(500, ErrorMessage = "Description cannot exceed 500 characters.")]
         public string Description { get; set; } = string.Empty; // Description of the event
 
-        [Required(ErrorMessage = "GroupLink is required.")]
-        public string GroupLink { get; set; } = string.Empty; // Group invite code (QR-friendly)
+        [Required(ErrorMessage = "Group link is required.")]
+        public string GroupLink { get; set; } = string.Empty; // Group invite code (must be unique)
 
         [Required(ErrorMessage = "OrganizerID is required.")]
-        [ForeignKey(nameof(Organizer))]
         public Guid OrganizerID { get; set; } // FK to User table
 
         [Required(ErrorMessage = "Start time is required.")]
@@ -29,15 +28,21 @@ namespace Umbrella_Server.Models
         [Required(ErrorMessage = "Expiration time is required.")]
         public DateTime ExpireTime { get; set; } // When the event expires (auto-delete)
 
+        [Required(ErrorMessage = "Meeting time is required.")]
+        public DateTime MeetingTime { get; set; } // When participants are expected to meet
+
+        [Required(ErrorMessage = "Meeting place is required.")]
+        [MaxLength(300, ErrorMessage = "Meeting place cannot exceed 300 characters.")]
+        public string MeetingPlace { get; set; } = string.Empty; // Address or link to Google Maps
+
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow; // Automatically set when the group is created
+        public DateTime CreatedAt { get; set; } // Automatically set when the group is created
 
         [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow; // Automatically updated every time the group is modified
+        public DateTime UpdatedAt { get; set; }// Automatically updated every time the group is modified
 
         // Navigation Properties
-        public User Organizer { get; set; } = null!; // The user who created and manages the group
-
+        public User? Organizer { get; set; } // Optional Organizer navigation property
         public ICollection<Member> Members { get; set; } = new List<Member>();
 
         public void EnsureGroupLink(int length = 8)
@@ -47,6 +52,7 @@ namespace Umbrella_Server.Models
                 GroupLink = GenerateGroupCode(length);
             }
         }
+
         public static string GenerateGroupCode(int length = 8)
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
