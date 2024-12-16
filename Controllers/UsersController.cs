@@ -111,13 +111,13 @@ namespace Umbrella_Server.Controllers
         }
 
 
-        // POST: api/User/{id}/roles (Add roles to a user)
-        [HttpPost("{id}/roles")]
-        public async Task<IActionResult> AddRolesToUser(Guid id, [FromBody] UserRole[] roles)
+        // PUT: api/User/{id}/roles (Change roles to a user)
+        [HttpPut("{id}/roles")]
+        public async Task<IActionResult> UpdateUserRoles(Guid id, [FromBody] UserRole[] roles)
         {
-            if (roles == null || !roles.Any())
+            if (roles == null || roles.Length == 0)
             {
-                return BadRequest(new { Message = "The roles field is required and must contain at least one role." });
+                return BadRequest(new { Message = "The roles field is required and cannot be empty." });
             }
 
             var user = await _context.Users.FindAsync(id);
@@ -126,19 +126,11 @@ namespace Umbrella_Server.Controllers
                 return NotFound(new { Message = $"User with ID {id} not found." });
             }
 
-            foreach (var role in roles)
-            {
-                if (!user.Roles.Contains(role))
-                {
-                    user.Roles.Add(role); // ✅ Add role directly
-                }
-            }
+            user.Roles = roles.Distinct().ToList();
 
             await _context.SaveChangesAsync();
-            return Ok(new { Message = "Roles successfully added.", CurrentRoles = user.Roles.Select(r => r.ToString()).ToList() });
+            return Ok(new { Message = "Roles successfully updated.", CurrentRoles = user.Roles.Select(r => r.ToString()).ToList() });
         }
-
-
 
 
         // DELETE: api/User/{id}/roles (Remove roles from a user)

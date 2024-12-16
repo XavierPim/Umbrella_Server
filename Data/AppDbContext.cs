@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Umbrella_Server.Models;
 
 namespace Umbrella_Server.Data
@@ -21,116 +22,109 @@ namespace Umbrella_Server.Data
             // ======================================
             // 🔥 USER CONFIGURATION
             // ======================================
+            var userRoleComparer = new ValueComparer<List<UserRole>>(
+                (list1, list2) => list1.SequenceEqual(list2),
+                list => list.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                list => list.ToList()
+            );
+
             modelBuilder.Entity<User>()
                 .Property(u => u.DateCreated)
-                .HasDefaultValueSql("GETUTCDATE()"); // SQL Server will handle the default value for DateCreated
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.Roles)
+                .HasConversion(
+                    v => string.Join(',', v),
+                    v => v.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                          .Select(r => Enum.Parse<UserRole>(r))
+                          .ToList()
+                )
+                .Metadata.SetValueComparer(userRoleComparer);
 
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Members)
                 .WithOne(m => m.User)
                 .HasForeignKey(m => m.UserID)
-                .OnDelete(DeleteBehavior.Restrict); // Restrict deletion of User if they are referenced in Members
-
-            modelBuilder.Entity<User>()
-                .HasOne(u => u.AttendeeInfo)
-                .WithOne(a => a.User)
-                .HasForeignKey<Attendee>(a => a.UserID)
-                .OnDelete(DeleteBehavior.Cascade); // Cascade delete the Attendee if User is deleted
-
-
-            modelBuilder.Entity<User>()
-                .HasOne(u => u.AdminInfo)
-                .WithOne(a => a.User)
-                .HasForeignKey<Admin>(a => a.UserID)
-                .OnDelete(DeleteBehavior.Cascade); // If User is deleted, delete related Admin
-
-            modelBuilder.Entity<User>()
-                .HasIndex(u => u.Email)
-                .IsUnique(); // Unique email constraint
-
-            modelBuilder.Entity<User>()
-       .Property(u => u.Roles)
-       .HasConversion(
-           v => string.Join(',', v),      // Convert List<UserRole> to a CSV string
-           v => v.Split(',', StringSplitOptions.RemoveEmptyEntries) // Convert CSV back to List<UserRole>
-                 .Select(r => Enum.Parse<UserRole>(r))
-                 .ToList());
-
-
+                .OnDelete(DeleteBehavior.Restrict);
 
             // ======================================
             // 🔥 ADMIN CONFIGURATION
             // ======================================
             modelBuilder.Entity<Admin>()
                 .Property(a => a.Permissions)
-                .HasDefaultValue(AdminPermissions.None); // Default permissions set to "None"
+                .HasDefaultValue(AdminPermissions.None);
 
             modelBuilder.Entity<Admin>()
                 .HasOne(a => a.User)
                 .WithOne(u => u.AdminInfo)
                 .HasForeignKey<Admin>(a => a.UserID)
-                .OnDelete(DeleteBehavior.Cascade); // Cascade delete for related Admin
+                .OnDelete(DeleteBehavior.Restrict); // Restrict deletion
 
             // ======================================
             // 🔥 ATTENDEE CONFIGURATION
             // ======================================
             modelBuilder.Entity<Attendee>()
-                .HasOne(a => a.User)
-                .WithOne(u => u.AttendeeInfo)
-                .HasForeignKey<Attendee>(a => a.UserID)
-                .OnDelete(DeleteBehavior.Cascade); // Cascade delete the Attendee if User is deleted
-
-            modelBuilder.Entity<Attendee>()
                 .Property(a => a.CanMessage)
-                .HasDefaultValue(false); // Default value for CanMessage is false
+                .HasDefaultValue(false);
 
             modelBuilder.Entity<Attendee>()
                 .Property(a => a.CanCall)
-                .HasDefaultValue(false); // Default value for CanCall is false
+                .HasDefaultValue(false);
 
             modelBuilder.Entity<Attendee>()
                 .Property(a => a.RsvpStatus)
-                .HasDefaultValue(RsvpStatus.Pending); // Default RSVP status is "Pending"
+                .HasDefaultValue(RsvpStatus.Pending);
+
+            modelBuilder.Entity<Attendee>()
+                .HasOne(a => a.User)
+                .WithOne(u => u.AttendeeInfo)
+                .HasForeignKey<Attendee>(a => a.UserID)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // ======================================
             // 🔥 GROUP CONFIGURATION
             // ======================================
             modelBuilder.Entity<Group>()
                 .Property(g => g.CreatedAt)
-                .HasDefaultValueSql("GETUTCDATE()"); // CreatedAt defaults to current UTC time
+                .HasDefaultValueSql("GETUTCDATE()");
 
             modelBuilder.Entity<Group>()
                 .Property(g => g.UpdatedAt)
                 .ValueGeneratedOnAddOrUpdate()
-                .HasDefaultValueSql("GETUTCDATE()"); // UpdatedAt is updated whenever the row is modified
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<Group>()
+                .HasIndex(g => g.GroupLink)
+                .IsUnique();
 
             modelBuilder.Entity<Group>()
                 .HasOne(g => g.Organizer)
                 .WithMany()
                 .HasForeignKey(g => g.OrganizerID)
-                .OnDelete(DeleteBehavior.Restrict); // If the organizer is deleted, groups are NOT deleted
-
-            modelBuilder.Entity<Group>()
-                .HasIndex(g => g.GroupLink)
-                .IsUnique(); // Ensure unique GroupLink constraint
+                .OnDelete(DeleteBehavior.Restrict);
 
             // ======================================
             // 🔥 MEMBER CONFIGURATION
             // ======================================
             modelBuilder.Entity<Member>()
-                .HasKey(m => new { m.GroupID, m.UserID }); // Composite PK for GroupID + UserID
+                .HasKey(m => new { m.GroupID, m.UserID });
 
             modelBuilder.Entity<Member>()
                 .HasOne(m => m.Group)
                 .WithMany(g => g.Members)
                 .HasForeignKey(m => m.GroupID)
-                .OnDelete(DeleteBehavior.Cascade); // Delete Member if Group is deleted
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Member>()
                 .HasOne(m => m.User)
                 .WithMany(u => u.Members)
                 .HasForeignKey(m => m.UserID)
-                .OnDelete(DeleteBehavior.Restrict); // Prevent User deletion if they are part of a Member
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

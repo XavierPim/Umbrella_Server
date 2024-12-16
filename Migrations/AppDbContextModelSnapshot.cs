@@ -183,7 +183,7 @@ namespace Umbrella_Server.Migrations
                     b.HasOne("User", "User")
                         .WithOne("AdminInfo")
                         .HasForeignKey("Umbrella_Server.Models.Admin", "UserID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("User");
@@ -194,7 +194,7 @@ namespace Umbrella_Server.Migrations
                     b.HasOne("User", "User")
                         .WithOne("AttendeeInfo")
                         .HasForeignKey("Umbrella_Server.Models.Attendee", "UserID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("User");
