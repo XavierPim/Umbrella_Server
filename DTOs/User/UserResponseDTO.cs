@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Umbrella_Server.DTOs.User
+﻿namespace Umbrella_Server.DTOs.User
 {
     public class UserResponseDto
     {

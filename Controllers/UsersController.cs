@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Umbrella_Server.Data.Repositories;
+using Umbrella_Server.Data.Repositories.User;
 using Umbrella_Server.DTOs.User;
 
 [Route("api/[controller]")]

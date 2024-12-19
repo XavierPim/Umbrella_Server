@@ -1,38 +1,63 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
-using Umbrella_Server.Models;
 using System.Text.Json.Serialization;
 
-public class User
+namespace Umbrella_Server.Models
 {
-    [Key]
-    public Guid UserID { get; set; } = Guid.NewGuid();
+    public enum UserRole
+    {
+        Admin,
+        Attendee,
+        Organizer
+    }
 
-    [Required]
-    public required string Name { get; set; }
+    public class User
+    {
+        [Key]
+        public Guid UserID { get; set; } = Guid.NewGuid();
 
-    [Required]
-    [EmailAddress]
-    public required string Email { get; set; }
+        [Required]
+        public required string Name { get; set; }
 
-    [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
-    public DateTime DateCreated { get; set; }
+        [Required]
+        [EmailAddress]
+        public required string Email { get; set; }
 
-    [Required]
-    public List<UserRole> Roles { get; set; } = new List<UserRole> { UserRole.Attendee };
+        [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
+        public DateTime DateCreated { get; set; }
 
-    public double? Latitude { get; set; }
-    public double? Longitude { get; set; }
+        // 🔥 Store roles as a single string in the database, split on comma
+        [Required]
+        [Column(TypeName = "nvarchar(max)")]
+        public string Roles { get; set; } = UserRole.Attendee.ToString(); // Store as a comma-separated string
 
-    [JsonIgnore]
-    public string GroupLink { get; set; } = string.Empty;
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
 
-    [JsonIgnore]
-    public ICollection<Member> Members { get; set; } = new List<Member>();
+        [JsonIgnore]
+        public string GroupLink { get; set; } = string.Empty;
 
-    [JsonIgnore]
-    public Attendee? AttendeeInfo { get; set; }
+        [JsonIgnore]
+        public ICollection<Member> Members { get; set; } = new List<Member>();
 
-    [JsonIgnore]
-    public Admin? AdminInfo { get; set; }
+        [JsonIgnore]
+        public Attendee? AttendeeInfo { get; set; }
+
+        [JsonIgnore]
+        public AdminUser? AdminInfo { get; set; }
+
+        // 🔥 Helper method to convert the comma-separated Roles into a List<UserRole>
+        public List<UserRole> GetRoles()
+        {
+            return Roles.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(role => Enum.Parse<UserRole>(role))
+                        .ToList();
+        }
+
+        // 🔥 Helper method to set roles from a List<UserRole>
+        public void SetRoles(List<UserRole> roles)
+        {
+            Roles = string.Join(',', roles.Select(r => r.ToString()));
+        }
+    }
 }

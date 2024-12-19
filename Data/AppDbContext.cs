@@ -10,7 +10,7 @@ namespace Umbrella_Server.Data
 
         // DbSet properties for all models
         public DbSet<User> Users { get; set; } = null!;
-        public DbSet<Admin> Admins { get; set; } = null!;
+        public DbSet<AdminUser> Admins { get; set; } = null!;
         public DbSet<Attendee> Attendees { get; set; } = null!;
         public DbSet<Group> Groups { get; set; } = null!;
         public DbSet<Member> Members { get; set; } = null!;
@@ -56,14 +56,14 @@ namespace Umbrella_Server.Data
             // ======================================
             // ADMIN CONFIGURATION
             // ======================================
-            modelBuilder.Entity<Admin>()
+            modelBuilder.Entity<AdminUser>()
                 .Property(a => a.Permissions)
                 .HasDefaultValue(AdminPermissions.None);
 
-            modelBuilder.Entity<Admin>()
+            modelBuilder.Entity<AdminUser>()
                 .HasOne(a => a.User)
                 .WithOne(u => u.AdminInfo)
-                .HasForeignKey<Admin>(a => a.UserID)
+                .HasForeignKey<AdminUser>(a => a.UserID)
                 .OnDelete(DeleteBehavior.Restrict); // Restrict deletion
 
             // ======================================

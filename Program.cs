@@ -1,19 +1,24 @@
-using System;
+﻿using System;
 using Umbrella_Server.Data;
 using Microsoft.EntityFrameworkCore;
+using Umbrella_Server.Data.Repositories.User;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure CORS to allow requests from React-Native App 
+// 🔥 CORS Configuration (allow localhost in development, production URL in production)
+var allowedOrigins = builder.Environment.IsDevelopment()
+    ? new[] { "http://localhost:3000" }
+    : new[] { "https://your-production-domain.com" };
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
-        policy.WithOrigins("http://localhost:3000") 
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod());
 });
 
-// Register DbContext with NetTopologySuite for GEOGRAPHY support
+// 🔥 Register DbContext for EF Core
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection"),
@@ -21,36 +26,38 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     )
 );
 
-// Register controllers
+// 🔥 Register controllers and JSON options
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
-    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
 });
 
+// 🔥 Dependency Injection for repositories (optional if you use repositories)
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
+// 🔥 Production Error Handling
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
-    app.UseHsts(); 
+    app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+
 
 app.UseRouting();
 
-// CORS must be placed after UseRouting and before UseAuthorization
+// 🔥 Enable CORS for frontend apps
 app.UseCors("AllowReactApp");
 
-// Authentication and Authorization
+// 🔥 Authentication and Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Endpoint routing for controllers
+// 🔥 Map Controllers
 app.MapControllers();
 
 app.Run();
