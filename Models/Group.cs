@@ -42,7 +42,7 @@ namespace Umbrella_Server.Models
         public DateTime UpdatedAt { get; set; }
 
         // Navigation Properties
-  
+
         public User? Organizer { get; set; }
         public ICollection<Member> Members { get; set; } = new List<Member>();
 
