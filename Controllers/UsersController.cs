@@ -147,7 +147,7 @@ namespace Umbrella_Server.Controllers
             {
                 if (user.Roles.Contains(role))
                 {
-                    user.Roles.Remove(role); // ✅ Remove role from the list
+                    user.Roles.Remove(role); 
                 }
             }
 

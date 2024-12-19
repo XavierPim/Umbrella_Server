@@ -100,7 +100,7 @@ namespace Umbrella_Server.Migrations
                 {
                     GroupID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     UserID = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Roles = table.Column<int>(type: "int", nullable: false)
+                    Roles = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {

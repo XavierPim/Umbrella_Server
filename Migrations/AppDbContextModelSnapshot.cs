@@ -127,8 +127,9 @@ namespace Umbrella_Server.Migrations
                     b.Property<Guid>("UserID")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("Roles")
-                        .HasColumnType("int");
+                    b.PrimitiveCollection<string>("Roles")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("GroupID", "UserID");
 

@@ -20,7 +20,7 @@ namespace Umbrella_Server.Data
             base.OnModelCreating(modelBuilder);
 
             // ======================================
-            // 🔥 USER CONFIGURATION
+            // USER CONFIGURATION
             // ======================================
             var userRoleComparer = new ValueComparer<List<UserRole>>(
                 (list1, list2) => list1.SequenceEqual(list2),
@@ -46,6 +46,7 @@ namespace Umbrella_Server.Data
                 )
                 .Metadata.SetValueComparer(userRoleComparer);
 
+
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Members)
                 .WithOne(m => m.User)
@@ -53,7 +54,7 @@ namespace Umbrella_Server.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             // ======================================
-            // 🔥 ADMIN CONFIGURATION
+            // ADMIN CONFIGURATION
             // ======================================
             modelBuilder.Entity<Admin>()
                 .Property(a => a.Permissions)
@@ -66,7 +67,7 @@ namespace Umbrella_Server.Data
                 .OnDelete(DeleteBehavior.Restrict); // Restrict deletion
 
             // ======================================
-            // 🔥 ATTENDEE CONFIGURATION
+            // ATTENDEE CONFIGURATION
             // ======================================
             modelBuilder.Entity<Attendee>()
                 .Property(a => a.CanMessage)
@@ -87,7 +88,7 @@ namespace Umbrella_Server.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             // ======================================
-            // 🔥 GROUP CONFIGURATION
+            // GROUP CONFIGURATION
             // ======================================
             modelBuilder.Entity<Group>()
                 .Property(g => g.CreatedAt)
@@ -109,7 +110,7 @@ namespace Umbrella_Server.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             // ======================================
-            // 🔥 MEMBER CONFIGURATION
+            // MEMBER CONFIGURATION
             // ======================================
             modelBuilder.Entity<Member>()
                 .HasKey(m => new { m.GroupID, m.UserID });

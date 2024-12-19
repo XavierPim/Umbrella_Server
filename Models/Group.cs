@@ -1,48 +1,49 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Umbrella_Server.Models
 {
     public class Group
     {
         [Key]
-        public Guid GroupID { get; set; } = Guid.NewGuid(); // Unique identifier for the group
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public Guid GroupID { get; set; }
 
         [Required(ErrorMessage = "Event name is required.")]
         [MaxLength(100, ErrorMessage = "Event name cannot exceed 100 characters.")]
-        public string EventName { get; set; } = string.Empty; // Name of the event
+        public required string EventName { get; set; }
 
         [Required(ErrorMessage = "Description is required.")]
         [MaxLength(500, ErrorMessage = "Description cannot exceed 500 characters.")]
-        public string Description { get; set; } = string.Empty; // Description of the event
+        public required string Description { get; set; }
 
         [Required(ErrorMessage = "Group link is required.")]
-        public string GroupLink { get; set; } = string.Empty; // Group invite code (must be unique)
+        [MinLength(8, ErrorMessage = "Group link must be at least 8 characters.")]
+        public string GroupLink { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "OrganizerID is required.")]
-        public Guid OrganizerID { get; set; } // FK to User table
+        public Guid OrganizerID { get; set; }
 
         [Required(ErrorMessage = "Start time is required.")]
-        public DateTime StartTime { get; set; } // When the event starts
+        public DateTime StartTime { get; set; }
 
         [Required(ErrorMessage = "Expiration time is required.")]
-        public DateTime ExpireTime { get; set; } // When the event expires (auto-delete)
+        public DateTime ExpireTime { get; set; }
 
         [Required(ErrorMessage = "Meeting time is required.")]
-        public DateTime MeetingTime { get; set; } // When participants are expected to meet
+        public DateTime MeetingTime { get; set; }
 
         [Required(ErrorMessage = "Meeting place is required.")]
         [MaxLength(300, ErrorMessage = "Meeting place cannot exceed 300 characters.")]
-        public string MeetingPlace { get; set; } = string.Empty; // Address or link to Google Maps
+        public required string MeetingPlace { get; set; }
 
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public DateTime CreatedAt { get; set; } // Automatically set when the group is created
-
-        [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
-        public DateTime UpdatedAt { get; set; }// Automatically updated every time the group is modified
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
 
         // Navigation Properties
-        public User? Organizer { get; set; } // Optional Organizer navigation property
+  
+        public User? Organizer { get; set; }
         public ICollection<Member> Members { get; set; } = new List<Member>();
 
         public void EnsureGroupLink(int length = 8)
