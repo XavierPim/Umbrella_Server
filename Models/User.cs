@@ -26,10 +26,8 @@ namespace Umbrella_Server.Models
         [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
         public DateTime DateCreated { get; set; }
 
-        // 🔥 Store roles as a single string in the database, split on comma
         [Required]
-        [Column(TypeName = "nvarchar(max)")]
-        public string Roles { get; set; } = UserRole.Attendee.ToString(); // Store as a comma-separated string
+        public List<UserRole> Roles { get; set; } = new List<UserRole> { UserRole.Attendee }; // ✅ List of UserRole
 
         public double? Latitude { get; set; }
         public double? Longitude { get; set; }
@@ -45,19 +43,5 @@ namespace Umbrella_Server.Models
 
         [JsonIgnore]
         public AdminUser? AdminInfo { get; set; }
-
-        // 🔥 Helper method to convert the comma-separated Roles into a List<UserRole>
-        public List<UserRole> GetRoles()
-        {
-            return Roles.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                        .Select(role => Enum.Parse<UserRole>(role))
-                        .ToList();
-        }
-
-        // 🔥 Helper method to set roles from a List<UserRole>
-        public void SetRoles(List<UserRole> roles)
-        {
-            Roles = string.Join(',', roles.Select(r => r.ToString()));
-        }
     }
 }

@@ -36,15 +36,22 @@ namespace Umbrella_Server.Data
                 .HasIndex(u => u.Email)
                 .IsUnique();
 
+
             modelBuilder.Entity<User>()
                 .Property(u => u.Roles)
                 .HasConversion(
-                    v => string.Join(',', v),
+                    v => string.Join(',', v.Select(role => role.ToString())), 
                     v => v.Split(',', StringSplitOptions.RemoveEmptyEntries)
                           .Select(r => Enum.Parse<UserRole>(r))
                           .ToList()
                 )
-                .Metadata.SetValueComparer(userRoleComparer);
+                .Metadata.SetValueComparer(new Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<List<UserRole>>(
+                    (c1, c2) => (c1 ?? new List<UserRole>()).SequenceEqual(c2 ?? new List<UserRole>()), // ✅ Null-coalescing operator ensures no nulls
+                    c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                    c => c.ToList()
+                ));
+
+
 
 
             modelBuilder.Entity<User>()

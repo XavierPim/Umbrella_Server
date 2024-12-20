@@ -1,7 +1,7 @@
 ﻿using System;
 using Umbrella_Server.Data;
 using Microsoft.EntityFrameworkCore;
-using Umbrella_Server.Data.Repositories.User;
+using Umbrella_Server.Data.Repositories.Users;
 
 var builder = WebApplication.CreateBuilder(args);
 

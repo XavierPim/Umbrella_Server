@@ -13,7 +13,7 @@ namespace Umbrella_Server.Controllers
 
         public GroupController(AppDbContext context)
         {
-            _context = context;
+            _context = context; 
         }
 
         // ✅ GET: api/Group/{groupId}

@@ -1,22 +1,19 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Umbrella_Server.Data.Repositories.Admin;
 using Umbrella_Server.Models;
 
-namespace Umbrella_Server.Data.Repositories.Admin
+namespace Umbrella_Server.Data.Repositories
 {
     public class AdminRepository : Repository<AdminUser>, IAdminRepository
     {
-        private readonly AppDbContext _context;
+        public AdminRepository(AppDbContext context) : base(context) { }
 
-        public AdminRepository(AppDbContext context) : base(context)
-        {
-            _context = context;
-        }
 
-        // ✅ Get Admin by UserID (Admin can only exist if they're a user)
+        // ✅ Get Admin by UserID
         public async Task<AdminUser?> GetAdminByUserIdAsync(Guid userId)
         {
             return await _context.Admins
-                .Include(a => a.User) // Optional if you want User details included
+                .Include(a => a.User)
                 .FirstOrDefaultAsync(a => a.UserID == userId);
         }
 
