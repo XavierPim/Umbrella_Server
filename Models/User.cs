@@ -27,7 +27,7 @@ namespace Umbrella_Server.Models
         public DateTime DateCreated { get; set; }
 
         [Required]
-        public List<UserRole> Roles { get; set; } = new List<UserRole> { UserRole.Attendee }; // ✅ List of UserRole
+        public List<UserRole> Roles { get; set; } = new List<UserRole> { UserRole.Attendee }; 
 
         public double? Latitude { get; set; }
         public double? Longitude { get; set; }

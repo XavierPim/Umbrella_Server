@@ -1,6 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using Umbrella_Server.Data;
+using Umbrella_Server.DTOs.Group;
+using Umbrella_Server.DTOs.Member;
 using Umbrella_Server.Models;
 
 namespace Umbrella_Server.Controllers
@@ -13,12 +16,12 @@ namespace Umbrella_Server.Controllers
 
         public GroupController(AppDbContext context)
         {
-            _context = context; 
+            _context = context;
         }
 
         // ✅ GET: api/Group/{groupId}
         [HttpGet("{groupId}")]
-        public async Task<ActionResult<Group>> GetGroup(Guid groupId)
+        public async Task<ActionResult<GroupResponseDto>> GetGroup(Guid groupId)
         {
             var group = await _context.Groups
                                       .Include(g => g.Members)
@@ -30,156 +33,138 @@ namespace Umbrella_Server.Controllers
                 return NotFound(new { Message = $"Group with ID {groupId} not found." });
             }
 
-            return Ok(group);
+            // ✅ Return GroupResponseDto instead of raw model
+            var responseDto = new GroupResponseDto
+            {
+                GroupID = group.GroupID,
+                EventName = group.EventName,
+                Description = group.Description,
+                GroupLink = group.GroupLink,
+                OrganizerID = group.OrganizerID,
+                StartTime = group.StartTime,
+                ExpireTime = group.ExpireTime,
+                MeetingTime = group.MeetingTime,
+                MeetingPlace = group.MeetingPlace,
+                CreatedAt = group.CreatedAt,
+                UpdatedAt = group.UpdatedAt
+            };
+
+            return Ok(responseDto);
         }
 
         // ✅ POST: api/Group (Create Group)
         [HttpPost]
-        public async Task<ActionResult> CreateGroup([FromBody] Group groupRequest)
+        public async Task<ActionResult<GroupResponseDto>> CreateGroup([FromBody] GroupCreateDto groupCreateDto)
         {
-            // ✅ Check if OrganizerID is present
-            if (groupRequest.OrganizerID == Guid.Empty)
+            if (groupCreateDto.OrganizerID == Guid.Empty)
             {
                 return BadRequest(new { Message = "OrganizerID is required." });
             }
 
-            // ✅ Check if the user exists
-            var userExists = await _context.Users.AnyAsync(u => u.UserID == groupRequest.OrganizerID);
+            var userExists = await _context.Users.AnyAsync(u => u.UserID == groupCreateDto.OrganizerID);
             if (!userExists)
             {
-                return NotFound(new
-                {
-                    Message = $"User with ID {groupRequest.OrganizerID} does not exist."
-                });
+                return NotFound(new { Message = $"User with ID {groupCreateDto.OrganizerID} does not exist." });
             }
 
-            // ✅ Manually create the Group object (to avoid automatic validation errors)
             var group = new Group
             {
-                GroupID = Guid.NewGuid(),
-                EventName = groupRequest.EventName,
-                Description = groupRequest.Description,
-                OrganizerID = groupRequest.OrganizerID,
-                StartTime = groupRequest.StartTime,
-                ExpireTime = groupRequest.ExpireTime,
-                MeetingTime = groupRequest.MeetingTime,
-                MeetingPlace = groupRequest.MeetingPlace,
+                EventName = groupCreateDto.EventName,
+                Description = groupCreateDto.Description,
+                OrganizerID = groupCreateDto.OrganizerID,
+                StartTime = groupCreateDto.StartTime,
+                ExpireTime = groupCreateDto.ExpireTime,
+                MeetingTime = groupCreateDto.MeetingTime,
+                MeetingPlace = groupCreateDto.MeetingPlace,
+                GroupLink = Group.GenerateGroupCode(8) // Generate GroupLink automatically
             };
 
-            // ✅ Generate a GroupLink if one is not provided
-            if (string.IsNullOrWhiteSpace(groupRequest.GroupLink))
-            {
-                group.GroupLink = Group.GenerateGroupCode(8); // Generate a random 8-character GroupLink
-            }
-            else
-            {
-                group.GroupLink = groupRequest.GroupLink;
-            }
-
-            // ✅ Save the group to the database
             _context.Groups.Add(group);
             await _context.SaveChangesAsync();
 
-            // ✅ Return the whole Group object
-            return CreatedAtAction(nameof(GetGroup), new { groupId = group.GroupID }, group);
+            var responseDto = new GroupResponseDto
+            {
+                GroupID = group.GroupID,
+                EventName = group.EventName,
+                Description = group.Description,
+                GroupLink = group.GroupLink,
+                OrganizerID = group.OrganizerID,
+                StartTime = group.StartTime,
+                ExpireTime = group.ExpireTime,
+                MeetingTime = group.MeetingTime,
+                MeetingPlace = group.MeetingPlace,
+                CreatedAt = group.CreatedAt,
+                UpdatedAt = group.UpdatedAt
+            };
+
+            return CreatedAtAction(nameof(GetGroup), new { groupId = group.GroupID }, responseDto);
         }
-
-
 
         // ✅ GET: api/Group/{groupId}/members
         [HttpGet("{groupId}/members")]
-        public async Task<ActionResult<IEnumerable<Member>>> GetMembers(Guid groupId)
+        public async Task<ActionResult<IEnumerable<MemberDto>>> GetMembers(Guid groupId)
         {
             var members = await _context.Members
                 .Where(m => m.GroupID == groupId)
                 .Include(m => m.User)
+                .Select(m => new MemberDto
+                {
+                    UserID = m.UserID,
+                    UserName = m.User.Name,
+                    Roles = m.Roles.Select(r => r.ToString()).ToList()
+                })
                 .ToListAsync();
 
             return Ok(members);
         }
 
-        // ✅ PUT: api/Group/{groupId}/members (Add or Update members in a group)
+        // ✅ PUT: api/Group/{groupId}/members
         [HttpPut("{groupId}/members")]
-        public async Task<ActionResult<IEnumerable<Member>>> UpdateGroupMembers(Guid groupId, [FromBody] List<Member> members)
+        public async Task<ActionResult> UpdateGroupMembers(Guid groupId, [FromBody] List<MemberDto> members)
         {
             if (members == null || !members.Any())
             {
                 return BadRequest(new { Message = "Member list cannot be empty." });
             }
 
-            // ✅ Check if the group exists
             var group = await _context.Groups.Include(g => g.Members).FirstOrDefaultAsync(g => g.GroupID == groupId);
             if (group == null)
             {
                 return NotFound(new { Message = $"Group with ID {groupId} not found." });
             }
 
-            // ✅ Get all UserIDs from the request to avoid querying the DB in the loop
-            var userIdsInRequest = members.Select(m => m.UserID).Distinct().ToList();
+            var userIds = members.Select(m => m.UserID).Distinct().ToList();
+            var existingUsers = await _context.Users.Where(u => userIds.Contains(u.UserID)).Select(u => u.UserID).ToListAsync();
 
-            // ✅ Check for invalid users
-            var existingUserIds = await _context.Users
-                .Where(u => userIdsInRequest.Contains(u.UserID))
-                .Select(u => u.UserID)
-                .ToListAsync();
-
-            var missingUsers = userIdsInRequest.Except(existingUserIds).ToList();
+            var missingUsers = userIds.Except(existingUsers).ToList();
             if (missingUsers.Any())
             {
-                return NotFound(new
-                {
-                    Message = "Some users were not found.",
-                    MissingUserIds = missingUsers
-                });
+                return NotFound(new { Message = "Some users were not found.", MissingUserIds = missingUsers });
             }
 
-            // ✅ Get existing members for the group
-            var existingMemberIds = await _context.Members
-                .Where(m => m.GroupID == groupId)
-                .Select(m => m.UserID)
-                .ToListAsync();
+            var existingMemberIds = group.Members.Select(m => m.UserID).ToList();
 
-            var addedOrUpdatedMembers = new List<Member>();
-
-            foreach (var member in members)
+            foreach (var memberDto in members)
             {
-                if (existingMemberIds.Contains(member.UserID))
+                var existingMember = group.Members.FirstOrDefault(m => m.UserID == memberDto.UserID);
+                if (existingMember != null)
                 {
-                    // ✅ Update existing member's roles
-                    var existingMember = await _context.Members
-                        .FirstOrDefaultAsync(m => m.GroupID == groupId && m.UserID == member.UserID);
-
-                    if (existingMember != null)
-                    {
-                        // ✅ Update Roles (overwrite roles with the new set)
-                        existingMember.Roles = member.Roles ?? new List<UserRole> { UserRole.Attendee };
-                    }
+                    existingMember.Roles = memberDto.Roles.Select(r => Enum.Parse<UserRole>(r)).ToList();
                 }
                 else
                 {
-                    // ✅ Create new Member object
                     var newMember = new Member
                     {
                         GroupID = groupId,
-                        UserID = member.UserID,
-                        Roles = member.Roles ?? new List<UserRole> { UserRole.Attendee }
+                        UserID = memberDto.UserID,
+                        Roles = memberDto.Roles.Select(r => Enum.Parse<UserRole>(r)).ToList()
                     };
-
                     _context.Members.Add(newMember);
-                    addedOrUpdatedMembers.Add(newMember);
                 }
             }
 
             await _context.SaveChangesAsync();
-
-            return Ok(new
-            {
-                Message = "Members updated successfully.",
-                Members = addedOrUpdatedMembers
-            });
+            return Ok(new { Message = "Members updated successfully." });
         }
-
-
-
     }
 }
