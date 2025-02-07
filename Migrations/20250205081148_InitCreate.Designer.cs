@@ -12,8 +12,8 @@ using Umbrella_Server.Data;
 namespace Umbrella_Server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241219233550_UpdateUserRoles")]
-    partial class UpdateUserRoles
+    [Migration("20250205081148_InitCreate")]
+    partial class InitCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

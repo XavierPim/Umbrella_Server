@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using Umbrella_Server.Data;
+using Umbrella_Server.Data.Repositories.Groups;
 using Umbrella_Server.DTOs.Group;
 using Umbrella_Server.DTOs.Member;
 using Umbrella_Server.Models;
@@ -12,11 +13,13 @@ namespace Umbrella_Server.Controllers
     [ApiController]
     public class GroupController : ControllerBase
     {
+        private readonly IGroupRepository _groupRepository;
         private readonly AppDbContext _context;
 
-        public GroupController(AppDbContext context)
+        public GroupController(AppDbContext context, IGroupRepository groupRepository)
         {
             _context = context;
+            _groupRepository = groupRepository;
         }
 
         // ✅ GET: api/Group/{groupId}
@@ -33,7 +36,15 @@ namespace Umbrella_Server.Controllers
                 return NotFound(new { Message = $"Group with ID {groupId} not found." });
             }
 
-            // ✅ Return GroupResponseDto instead of raw model
+            // ✅ Convert members to DTOs
+            var memberDtos = group.Members.Select(m => new MemberDto
+            {
+                UserID = m.UserID,
+                UserName = m.User?.Name ?? "Unknown",
+                Roles = m.Roles.Select(r => r.ToString()).ToList()
+            }).ToList();
+
+            // ✅ Return group
             var responseDto = new GroupResponseDto
             {
                 GroupID = group.GroupID,
@@ -46,41 +57,56 @@ namespace Umbrella_Server.Controllers
                 MeetingTime = group.MeetingTime,
                 MeetingPlace = group.MeetingPlace,
                 CreatedAt = group.CreatedAt,
-                UpdatedAt = group.UpdatedAt
+                UpdatedAt = group.UpdatedAt,
+                Members = memberDtos 
             };
 
             return Ok(responseDto);
         }
 
+
         // ✅ POST: api/Group (Create Group)
         [HttpPost]
         public async Task<ActionResult<GroupResponseDto>> CreateGroup([FromBody] GroupCreateDto groupCreateDto)
         {
-            if (groupCreateDto.OrganizerID == Guid.Empty)
+            // 🚀 Extract User ID from JWT (Commented out until Azure Auth is enabled)
+            // var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            // if (userIdClaim == null) return Unauthorized();
+            // var userId = Guid.Parse(userIdClaim);
+
+            // 🚀 For Development: Use a Hardcoded User ID Until Azure Auth is Integrated
+            var userId = Guid.Parse("67abb0cf-8ec6-4d90-9009-75430147df2d"); // Replace when JWT is active
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
             {
-                return BadRequest(new { Message = "OrganizerID is required." });
+                return NotFound(new { Message = $"User with ID {userId} does not exist." });
             }
 
-            var userExists = await _context.Users.AnyAsync(u => u.UserID == groupCreateDto.OrganizerID);
-            if (!userExists)
+            // ✅ Ensure the user is an Organizer
+            if (!user.Roles.Contains(UserRole.Organizer))
             {
-                return NotFound(new { Message = $"User with ID {groupCreateDto.OrganizerID} does not exist." });
+                user.Roles.Add(UserRole.Organizer);
+                _context.Users.Update(user);
             }
 
             var group = new Group
             {
                 EventName = groupCreateDto.EventName,
                 Description = groupCreateDto.Description,
-                OrganizerID = groupCreateDto.OrganizerID,
+                OrganizerID = userId,
                 StartTime = groupCreateDto.StartTime,
                 ExpireTime = groupCreateDto.ExpireTime,
                 MeetingTime = groupCreateDto.MeetingTime,
                 MeetingPlace = groupCreateDto.MeetingPlace,
-                GroupLink = Group.GenerateGroupCode(8) // Generate GroupLink automatically
+                GroupLink = Group.GenerateGroupCode(8)
             };
 
             _context.Groups.Add(group);
             await _context.SaveChangesAsync();
+
+            // ✅ Add the creator as a member
+            await _groupRepository.AddMemberAsync(group.GroupID, userId, new List<UserRole> { UserRole.Organizer });
 
             var responseDto = new GroupResponseDto
             {
@@ -88,7 +114,7 @@ namespace Umbrella_Server.Controllers
                 EventName = group.EventName,
                 Description = group.Description,
                 GroupLink = group.GroupLink,
-                OrganizerID = group.OrganizerID,
+                OrganizerID = userId,
                 StartTime = group.StartTime,
                 ExpireTime = group.ExpireTime,
                 MeetingTime = group.MeetingTime,
@@ -99,6 +125,7 @@ namespace Umbrella_Server.Controllers
 
             return CreatedAtAction(nameof(GetGroup), new { groupId = group.GroupID }, responseDto);
         }
+
 
         // ✅ GET: api/Group/{groupId}/members
         [HttpGet("{groupId}/members")]

@@ -10,10 +10,18 @@ namespace Umbrella_Server.Data.Repositories.Users
         public async Task<User?> GetUserByEmailAsync(string email)
         {
             return await _context.Users
-                .AsNoTracking() 
+                .AsNoTracking()
                 .Include(u => u.AdminInfo)
                 .Include(u => u.AttendeeInfo)
                 .FirstOrDefaultAsync(u => u.Email == email);
         }
+        public async Task<User?> GetByIdAsync(Guid userId)
+        {
+            return await _context.Users
+                .Include(u => u.AdminInfo)
+                .Include(u => u.AttendeeInfo)
+                .FirstOrDefaultAsync(u => u.UserID == userId);
+        }
+
     }
 }

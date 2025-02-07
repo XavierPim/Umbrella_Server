@@ -1,4 +1,5 @@
-﻿public class GroupResponseDto
+﻿using Umbrella_Server.DTOs.Member;
+public class GroupResponseDto
 {
     public Guid GroupID { get; set; }
     public string EventName { get; set; } = string.Empty;
@@ -11,4 +12,10 @@
     public string MeetingPlace { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+
+    // List of members
+    public List<MemberDto> Members { get; set; } = new List<MemberDto>();
 }
+
+
+

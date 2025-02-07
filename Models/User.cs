@@ -14,7 +14,7 @@ namespace Umbrella_Server.Models
     public class User
     {
         [Key]
-        public Guid UserID { get; set; } = Guid.NewGuid();
+        public Guid UserID { get; set; }
 
         [Required]
         public required string Name { get; set; }

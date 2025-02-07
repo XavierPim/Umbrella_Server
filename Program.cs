@@ -2,6 +2,7 @@
 using Umbrella_Server.Data;
 using Microsoft.EntityFrameworkCore;
 using Umbrella_Server.Data.Repositories.Users;
+using Umbrella_Server.Data.Repositories.Groups;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,7 +36,7 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 
 // 🔥 Dependency Injection for repositories (optional if you use repositories)
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-
+builder.Services.AddScoped<IGroupRepository, GroupRepository>();
 var app = builder.Build();
 
 // 🔥 Production Error Handling
