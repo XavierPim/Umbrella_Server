@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
+using System.Net;
 using Umbrella_Server.Data;
 using Umbrella_Server.Data.Repositories.Groups;
 using Umbrella_Server.DTOs.Group;
@@ -106,7 +107,7 @@ namespace Umbrella_Server.Controllers
             await _context.SaveChangesAsync();
 
             // ✅ Add the creator as a member
-            await _groupRepository.AddMemberAsync(group.GroupID, userId, new List<UserRole> { UserRole.Organizer });
+            await _groupRepository.AddMemberAsync(group.GroupID, userId, new List<UserRole> { UserRole.Organizer, UserRole.Attendee});
 
             var responseDto = new GroupResponseDto
             {
@@ -154,14 +155,34 @@ namespace Umbrella_Server.Controllers
                 return BadRequest(new { Message = "Member list cannot be empty." });
             }
 
-            var group = await _context.Groups.Include(g => g.Members).FirstOrDefaultAsync(g => g.GroupID == groupId);
+            // Extract User ID from JWT (Commented out until Azure Auth is enabled)
+            // var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            // if (userIdClaim == null) return Unauthorized();
+            // var userId = Guid.Parse(userIdClaim);
+
+            //For Development: Use a Hardcoded User ID Until Azure Auth is Integrated
+            var userId = Guid.Parse("67abb0cf-8ec6-4d90-9009-75430147df2d"); // Replace when JWT is active
+
+            var group = await _context.Groups
+                .Include(g => g.Members)
+                .FirstOrDefaultAsync(g => g.GroupID == groupId);
+
             if (group == null)
             {
                 return NotFound(new { Message = $"Group with ID {groupId} not found." });
             }
 
+            // ✅ Check if the requesting user is the Organizer
+            if (group.OrganizerID != userId)
+            {
+                return Forbid("Only the Organizer can modify group members.");
+            }
+
             var userIds = members.Select(m => m.UserID).Distinct().ToList();
-            var existingUsers = await _context.Users.Where(u => userIds.Contains(u.UserID)).Select(u => u.UserID).ToListAsync();
+            var existingUsers = await _context.Users
+                .Where(u => userIds.Contains(u.UserID))
+                .Select(u => u.UserID)
+                .ToListAsync();
 
             var missingUsers = userIds.Except(existingUsers).ToList();
             if (missingUsers.Any())
