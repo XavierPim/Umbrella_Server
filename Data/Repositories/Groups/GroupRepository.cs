@@ -5,12 +5,8 @@ namespace Umbrella_Server.Data.Repositories.Groups
 {
     public class GroupRepository : Repository<Group>, IGroupRepository
     {
-        private readonly AppDbContext _context;
 
-        public GroupRepository(AppDbContext context) : base(context)
-        {
-            _context = context;
-        }
+        public GroupRepository(AppDbContext context) : base(context){}
 
         // ✅ Get group by ID
         public async Task<Group?> GetGroupByIdAsync(Guid groupId)
@@ -46,7 +42,7 @@ namespace Umbrella_Server.Data.Repositories.Groups
                 };
 
                 _context.Members.Add(newMember);
-                await _context.SaveChangesAsync(); // ✅ Ensure it persists
+                await _context.SaveChangesAsync();
             }
         }
     }

@@ -23,10 +23,10 @@ namespace Umbrella_Server.Data
             // USER CONFIGURATION
             // ======================================
             var userRoleComparer = new ValueComparer<List<UserRole>>(
-                (list1, list2) => list1.SequenceEqual(list2),
-                list => list.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
-                list => list.ToList()
-            );
+         (list1, list2) => (list1 ?? new List<UserRole>()).SequenceEqual(list2 ?? new List<UserRole>()),
+         list => (list ?? new List<UserRole>()).Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+         list => (list ?? new List<UserRole>()).ToList()
+     );
 
             modelBuilder.Entity<User>()
                 .Property(u => u.DateCreated)
@@ -40,7 +40,7 @@ namespace Umbrella_Server.Data
             modelBuilder.Entity<User>()
                 .Property(u => u.Roles)
                 .HasConversion(
-                    v => string.Join(',', v.Select(role => role.ToString())), 
+                    v => string.Join(',', v.Select(role => role.ToString())),
                     v => v.Split(',', StringSplitOptions.RemoveEmptyEntries)
                           .Select(r => Enum.Parse<UserRole>(r))
                           .ToList()

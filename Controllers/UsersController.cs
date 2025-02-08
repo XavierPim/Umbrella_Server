@@ -100,7 +100,7 @@ public class UserController : ControllerBase
         // if (userEmailClaim == null) return Unauthorized();
 
         // For development: Hardcode an email or accept it as a query param
-        var userEmail = "test@example.com"; // Replace with actual test data
+        var userEmail = "3@example.com"; // Replace with actual test data
 
         var user = await _userRepository.GetUserByEmailAsync(userEmail);
         if (user == null) return NotFound();
@@ -133,7 +133,7 @@ public class UserController : ControllerBase
         // if (userIdClaim == null) return Unauthorized();
 
         // For Development: Use a hardcoded User ID instead
-        var user = await _userRepository.GetByIdAsync(Guid.Parse("YOUR_TEST_USER_ID"));
+        var user = await _userRepository.GetByIdAsync(Guid.Parse("6eb8cf56-1ca7-46d4-ae60-2c4d778d6459"));
 
         if (user == null) return NotFound();
 
@@ -150,7 +150,7 @@ public class UserController : ControllerBase
         // if (userIdClaim == null) return Unauthorized();
 
         // For Development: Use a hardcoded User ID instead
-        var userToUpdate = await _userRepository.GetByIdAsync(Guid.Parse("YOUR_TEST_USER_ID"));
+        var userToUpdate = await _userRepository.GetByIdAsync(Guid.Parse("6eb8cf56-1ca7-46d4-ae60-2c4d778d6459"));
 
         if (userToUpdate == null) return NotFound();
 

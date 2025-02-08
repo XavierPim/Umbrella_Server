@@ -59,7 +59,7 @@ namespace Umbrella_Server.Controllers
                 MeetingPlace = group.MeetingPlace,
                 CreatedAt = group.CreatedAt,
                 UpdatedAt = group.UpdatedAt,
-                Members = memberDtos 
+                Members = memberDtos
             };
 
             return Ok(responseDto);
@@ -107,7 +107,7 @@ namespace Umbrella_Server.Controllers
             await _context.SaveChangesAsync();
 
             // ✅ Add the creator as a member
-            await _groupRepository.AddMemberAsync(group.GroupID, userId, new List<UserRole> { UserRole.Organizer, UserRole.Attendee});
+            await _groupRepository.AddMemberAsync(group.GroupID, userId, new List<UserRole> { UserRole.Organizer, UserRole.Attendee });
 
             var responseDto = new GroupResponseDto
             {
@@ -138,7 +138,7 @@ namespace Umbrella_Server.Controllers
                 .Select(m => new MemberDto
                 {
                     UserID = m.UserID,
-                    UserName = m.User.Name,
+                    UserName = m.User != null ? m.User.Name : "Unknown",
                     Roles = m.Roles.Select(r => r.ToString()).ToList()
                 })
                 .ToListAsync();
@@ -161,7 +161,7 @@ namespace Umbrella_Server.Controllers
             // var userId = Guid.Parse(userIdClaim);
 
             //For Development: Use a Hardcoded User ID Until Azure Auth is Integrated
-            var userId = Guid.Parse("67abb0cf-8ec6-4d90-9009-75430147df2d"); // Replace when JWT is active
+            var userId = Guid.Parse("5b9d77b0-2e85-4759-a579-02c847003530"); // Replace when JWT is active
 
             var group = await _context.Groups
                 .Include(g => g.Members)
@@ -172,10 +172,10 @@ namespace Umbrella_Server.Controllers
                 return NotFound(new { Message = $"Group with ID {groupId} not found." });
             }
 
-            // ✅ Check if the requesting user is the Organizer
+            // ✅ Check if the requesting user is the Organizer - restric event modifications to organizer
             if (group.OrganizerID != userId)
             {
-                return Forbid("Only the Organizer can modify group members.");
+                return StatusCode(403, new { Message = "Only the Organizer can modify group members." });
             }
 
             var userIds = members.Select(m => m.UserID).Distinct().ToList();
