@@ -1,7 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
-using System.Net;
 using Umbrella_Server.Data;
 using Umbrella_Server.Data.Repositories.Groups;
 using Umbrella_Server.DTOs.Group;
@@ -106,9 +104,16 @@ namespace Umbrella_Server.Controllers
             _context.Groups.Add(group);
             await _context.SaveChangesAsync();
 
-            // ✅ Add the creator as a member
-            await _groupRepository.AddMemberAsync(group.GroupID, userId, new List<UserRole> { UserRole.Organizer, UserRole.Attendee });
-
+            // ✅ Add Organizer as a Member with Full Permissions
+            var organizerMember = new Member
+            {
+                GroupID = group.GroupID,
+                UserID = userId,
+                Roles = new List<UserRole> { UserRole.Organizer, UserRole.Attendee },
+                CanMessage = true, // ✅ Organizer can message
+                CanCall = true,    // ✅ Organizer can call
+                RsvpStatus = RsvpStatus.Accepted
+            };
             var responseDto = new GroupResponseDto
             {
                 GroupID = group.GroupID,
@@ -125,94 +130,6 @@ namespace Umbrella_Server.Controllers
             };
 
             return CreatedAtAction(nameof(GetGroup), new { groupId = group.GroupID }, responseDto);
-        }
-
-
-        // ✅ GET: api/Group/{groupId}/members
-        [HttpGet("{groupId}/members")]
-        public async Task<ActionResult<IEnumerable<MemberDto>>> GetMembers(Guid groupId)
-        {
-            var members = await _context.Members
-                .Where(m => m.GroupID == groupId)
-                .Include(m => m.User)
-                .Select(m => new MemberDto
-                {
-                    UserID = m.UserID,
-                    UserName = m.User != null ? m.User.Name : "Unknown",
-                    Roles = m.Roles.Select(r => r.ToString()).ToList()
-                })
-                .ToListAsync();
-
-            return Ok(members);
-        }
-
-        // ✅ PUT: api/Group/{groupId}/members
-        [HttpPut("{groupId}/members")]
-        public async Task<ActionResult> UpdateGroupMembers(Guid groupId, [FromBody] List<MemberDto> members)
-        {
-            if (members == null || !members.Any())
-            {
-                return BadRequest(new { Message = "Member list cannot be empty." });
-            }
-
-            // Extract User ID from JWT (Commented out until Azure Auth is enabled)
-            // var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            // if (userIdClaim == null) return Unauthorized();
-            // var userId = Guid.Parse(userIdClaim);
-
-            //For Development: Use a Hardcoded User ID Until Azure Auth is Integrated
-            var userId = Guid.Parse("5b9d77b0-2e85-4759-a579-02c847003530"); // Replace when JWT is active
-
-            var group = await _context.Groups
-                .Include(g => g.Members)
-                .FirstOrDefaultAsync(g => g.GroupID == groupId);
-
-            if (group == null)
-            {
-                return NotFound(new { Message = $"Group with ID {groupId} not found." });
-            }
-
-            // ✅ Check if the requesting user is the Organizer - restric event modifications to organizer
-            if (group.OrganizerID != userId)
-            {
-                return StatusCode(403, new { Message = "Only the Organizer can modify group members." });
-            }
-
-            var userIds = members.Select(m => m.UserID).Distinct().ToList();
-            var existingUsers = await _context.Users
-                .Where(u => userIds.Contains(u.UserID))
-                .Select(u => u.UserID)
-                .ToListAsync();
-
-            var missingUsers = userIds.Except(existingUsers).ToList();
-            if (missingUsers.Any())
-            {
-                return NotFound(new { Message = "Some users were not found.", MissingUserIds = missingUsers });
-            }
-
-            var existingMemberIds = group.Members.Select(m => m.UserID).ToList();
-
-            foreach (var memberDto in members)
-            {
-                var existingMember = group.Members.FirstOrDefault(m => m.UserID == memberDto.UserID);
-                if (existingMember != null)
-                {
-                    existingMember.Roles = memberDto.Roles.Select(r => Enum.Parse<UserRole>(r)).ToList();
-                }
-                else
-                {
-                    var newMember = new Member
-                    {
-                        GroupID = groupId,
-                        UserID = memberDto.UserID,
-                        Roles = memberDto.Roles.Select(r => Enum.Parse<UserRole>(r)).ToList()
-                    };
-                    _context.Members.Add(newMember);
-                }
-            }
-
-            await _context.SaveChangesAsync();
-            return Ok(new { Message = "Members updated successfully." });
         }
     }
 }

@@ -11,7 +11,6 @@ namespace Umbrella_Server.Data
         // DbSet properties for all models
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<AdminUser> Admins { get; set; } = null!;
-        public DbSet<Attendee> Attendees { get; set; } = null!;
         public DbSet<Group> Groups { get; set; } = null!;
         public DbSet<Member> Members { get; set; } = null!;
 
@@ -52,8 +51,6 @@ namespace Umbrella_Server.Data
                 ));
 
 
-
-
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Members)
                 .WithOne(m => m.User)
@@ -73,26 +70,6 @@ namespace Umbrella_Server.Data
                 .HasForeignKey<AdminUser>(a => a.UserID)
                 .OnDelete(DeleteBehavior.Restrict); // Restrict deletion
 
-            // ======================================
-            // ATTENDEE CONFIGURATION
-            // ======================================
-            modelBuilder.Entity<Attendee>()
-                .Property(a => a.CanMessage)
-                .HasDefaultValue(false);
-
-            modelBuilder.Entity<Attendee>()
-                .Property(a => a.CanCall)
-                .HasDefaultValue(false);
-
-            modelBuilder.Entity<Attendee>()
-                .Property(a => a.RsvpStatus)
-                .HasDefaultValue(RsvpStatus.Pending);
-
-            modelBuilder.Entity<Attendee>()
-                .HasOne(a => a.User)
-                .WithOne(u => u.AttendeeInfo)
-                .HasForeignKey<Attendee>(a => a.UserID)
-                .OnDelete(DeleteBehavior.Restrict);
 
             // ======================================
             // GROUP CONFIGURATION
@@ -119,7 +96,7 @@ namespace Umbrella_Server.Data
             // ======================================
             // MEMBER CONFIGURATION
             // ======================================
-            modelBuilder.Entity<Member>()
+              modelBuilder.Entity<Member>()
                 .HasKey(m => new { m.GroupID, m.UserID });
 
             modelBuilder.Entity<Member>()
@@ -133,6 +110,19 @@ namespace Umbrella_Server.Data
                 .WithMany(u => u.Members)
                 .HasForeignKey(m => m.UserID)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // ✅ Added new permission fields
+            modelBuilder.Entity<Member>()
+                .Property(m => m.CanMessage)
+                .HasDefaultValue(false);
+
+            modelBuilder.Entity<Member>()
+                .Property(m => m.CanCall)
+                .HasDefaultValue(false);
+
+            modelBuilder.Entity<Member>()
+                .Property(m => m.RsvpStatus)
+                .HasDefaultValue(RsvpStatus.Pending);
         }
     }
 }

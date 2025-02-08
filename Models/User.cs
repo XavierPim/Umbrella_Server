@@ -38,8 +38,6 @@ namespace Umbrella_Server.Models
         [JsonIgnore]
         public ICollection<Member> Members { get; set; } = new List<Member>();
 
-        [JsonIgnore]
-        public Attendee? AttendeeInfo { get; set; }
 
         [JsonIgnore]
         public AdminUser? AdminInfo { get; set; }
