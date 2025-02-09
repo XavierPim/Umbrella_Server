@@ -35,7 +35,7 @@ namespace Umbrella_Server.Controllers
                 return NotFound(new { Message = $"Group with ID {groupId} not found." });
             }
 
-            // ✅ Convert members to DTOs
+            // Convert members to DTOs
             var memberDtos = group.Members.Select(m => new MemberDto
             {
                 UserID = m.UserID,
@@ -43,7 +43,7 @@ namespace Umbrella_Server.Controllers
                 Roles = m.Roles.Select(r => r.ToString()).ToList()
             }).ToList();
 
-            // ✅ Return group
+            // Return group
             var responseDto = new GroupResponseDto
             {
                 GroupID = group.GroupID,
@@ -74,7 +74,7 @@ namespace Umbrella_Server.Controllers
             // var userId = Guid.Parse(userIdClaim);
 
             // 🚀 For Development: Use a Hardcoded User ID Until Azure Auth is Integrated
-            var userId = Guid.Parse("67abb0cf-8ec6-4d90-9009-75430147df2d"); // Replace when JWT is active
+            var userId = Guid.Parse("ddf28569-ead9-49ba-a1e0-78e73fd261a8"); // Replace when JWT is active
 
             var user = await _context.Users.FindAsync(userId);
             if (user == null)
@@ -82,7 +82,7 @@ namespace Umbrella_Server.Controllers
                 return NotFound(new { Message = $"User with ID {userId} does not exist." });
             }
 
-            // ✅ Ensure the user is an Organizer
+            //Ensure the user is an Organizer
             if (!user.Roles.Contains(UserRole.Organizer))
             {
                 user.Roles.Add(UserRole.Organizer);
@@ -104,16 +104,21 @@ namespace Umbrella_Server.Controllers
             _context.Groups.Add(group);
             await _context.SaveChangesAsync();
 
-            // ✅ Add Organizer as a Member with Full Permissions
+            //Add Organizer as a Member with Full Permissions
             var organizerMember = new Member
             {
                 GroupID = group.GroupID,
                 UserID = userId,
                 Roles = new List<UserRole> { UserRole.Organizer, UserRole.Attendee },
-                CanMessage = true, // ✅ Organizer can message
-                CanCall = true,    // ✅ Organizer can call
+                CanMessage = true, //Organizer can message
+                CanCall = true,    //Organizer can call
                 RsvpStatus = RsvpStatus.Accepted
             };
+
+            //add and save organizer as a member
+            _context.Members.Add(organizerMember);
+            await _context.SaveChangesAsync();
+
             var responseDto = new GroupResponseDto
             {
                 GroupID = group.GroupID,
