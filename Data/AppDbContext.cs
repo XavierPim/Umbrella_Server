@@ -13,6 +13,7 @@ namespace Umbrella_Server.Data
         public DbSet<AdminUser> Admins { get; set; } = null!;
         public DbSet<Group> Groups { get; set; } = null!;
         public DbSet<Member> Members { get; set; } = null!;
+        public DbSet<ActiveGroup> ActiveGroups { get; set; } = null!; 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -22,10 +23,10 @@ namespace Umbrella_Server.Data
             // USER CONFIGURATION
             // ======================================
             var userRoleComparer = new ValueComparer<List<UserRole>>(
-         (list1, list2) => (list1 ?? new List<UserRole>()).SequenceEqual(list2 ?? new List<UserRole>()),
-         list => (list ?? new List<UserRole>()).Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
-         list => (list ?? new List<UserRole>()).ToList()
-     );
+                (list1, list2) => (list1 ?? new List<UserRole>()).SequenceEqual(list2 ?? new List<UserRole>()),
+                list => (list ?? new List<UserRole>()).Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                list => (list ?? new List<UserRole>()).ToList()
+            );
 
             modelBuilder.Entity<User>()
                 .Property(u => u.DateCreated)
@@ -35,7 +36,6 @@ namespace Umbrella_Server.Data
                 .HasIndex(u => u.Email)
                 .IsUnique();
 
-
             modelBuilder.Entity<User>()
                 .Property(u => u.Roles)
                 .HasConversion(
@@ -44,12 +44,11 @@ namespace Umbrella_Server.Data
                           .Select(r => Enum.Parse<UserRole>(r))
                           .ToList()
                 )
-                .Metadata.SetValueComparer(new Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<List<UserRole>>(
-                    (c1, c2) => (c1 ?? new List<UserRole>()).SequenceEqual(c2 ?? new List<UserRole>()), // ✅ Null-coalescing operator ensures no nulls
+                .Metadata.SetValueComparer(new ValueComparer<List<UserRole>>(
+                    (c1, c2) => (c1 ?? new List<UserRole>()).SequenceEqual(c2 ?? new List<UserRole>()),
                     c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
                     c => c.ToList()
                 ));
-
 
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Members)
@@ -69,7 +68,6 @@ namespace Umbrella_Server.Data
                 .WithOne(u => u.AdminInfo)
                 .HasForeignKey<AdminUser>(a => a.UserID)
                 .OnDelete(DeleteBehavior.Restrict); // Restrict deletion
-
 
             // ======================================
             // GROUP CONFIGURATION
@@ -96,7 +94,7 @@ namespace Umbrella_Server.Data
             // ======================================
             // MEMBER CONFIGURATION
             // ======================================
-              modelBuilder.Entity<Member>()
+            modelBuilder.Entity<Member>()
                 .HasKey(m => new { m.GroupID, m.UserID });
 
             modelBuilder.Entity<Member>()
@@ -111,7 +109,6 @@ namespace Umbrella_Server.Data
                 .HasForeignKey(m => m.UserID)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // ✅ Added new permission fields
             modelBuilder.Entity<Member>()
                 .Property(m => m.CanMessage)
                 .HasDefaultValue(false);
@@ -123,6 +120,26 @@ namespace Umbrella_Server.Data
             modelBuilder.Entity<Member>()
                 .Property(m => m.RsvpStatus)
                 .HasDefaultValue(RsvpStatus.Pending);
+
+            // ======================================
+            // ACTIVE GROUP CONFIGURATION (RUNTIME LOCATION TRACKING)
+            // ======================================
+            modelBuilder.Entity<ActiveGroup>()
+                .HasKey(ag => new { ag.GroupID, ag.UserID }); // ✅ Composite PK for uniqueness
+
+            modelBuilder.Entity<ActiveGroup>()
+                .HasOne(ag => ag.User)
+                .WithMany()
+                .HasForeignKey(ag => ag.UserID)
+                .OnDelete(DeleteBehavior.Cascade); // When event ends, remove all active tracking
+
+            modelBuilder.Entity<ActiveGroup>()
+                .Property(ag => ag.TimeStamp)
+                .HasDefaultValueSql("GETUTCDATE()"); // Default timestamp to UTC
+
+            modelBuilder.Entity<ActiveGroup>()
+                .Property(ag => ag.DistanceFromOrganizer)
+                .HasDefaultValue(null); // Nullable, calculated at runtime
         }
     }
 }
