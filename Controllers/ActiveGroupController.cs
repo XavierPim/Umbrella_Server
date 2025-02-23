@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Umbrella_Server.Data;
 using Umbrella_Server.DTOs.ActiveGroup;
 using Umbrella_Server.Models;
+using Umbrella_Server.Security;
 
 namespace Umbrella_Server.Controllers
 {
@@ -21,6 +22,10 @@ namespace Umbrella_Server.Controllers
         [HttpPost("{groupId}/start")]
         public async Task<ActionResult> StartTracking(Guid groupId)
         {
+
+            //add logic to check if member
+            // var userId = User.GetUserId();
+
             var group = await _context.Groups.Include(g => g.Members).FirstOrDefaultAsync(g => g.GroupID == groupId);
             if (group == null) return NotFound(new { Message = "Group not found." });
 
@@ -47,6 +52,10 @@ namespace Umbrella_Server.Controllers
         [HttpPut("{groupId}/update-location")]
         public async Task<ActionResult> UpdateLocation(Guid groupId, [FromBody] LocationUpdateDto locationDto)
         {
+
+            //add logic to check if member
+            // var userId = User.GetUserId();
+
             var activeMember = await _context.ActiveGroups.FirstOrDefaultAsync(ag => ag.GroupID == groupId && ag.UserID == locationDto.UserID);
             if (activeMember == null)
                 return NotFound(new { Message = "User is not active in this group." });
@@ -63,6 +72,9 @@ namespace Umbrella_Server.Controllers
         [HttpGet("{groupId}/locations")]
         public async Task<ActionResult<IEnumerable<ActiveGroup>>> GetLocations(Guid groupId)
         {
+
+            //add logic to check if member
+            // var userId = User.GetUserId();
             var locations = await _context.ActiveGroups.Where(ag => ag.GroupID == groupId).ToListAsync();
             return Ok(locations);
         }
@@ -71,6 +83,9 @@ namespace Umbrella_Server.Controllers
         [HttpDelete("{groupId}/end")]
         public async Task<ActionResult> EndTracking(Guid groupId)
         {
+
+            //add logic to check if organizer
+            // var userId = User.GetUserId();
             var activeMembers = _context.ActiveGroups.Where(ag => ag.GroupID == groupId);
             if (!activeMembers.Any()) return NotFound(new { Message = "No active tracking found for this group." });
 

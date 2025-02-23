@@ -20,9 +20,7 @@ public class UserController : ControllerBase
     public async Task<ActionResult<IEnumerable<UserResponseDto>>> GetUsers()
     {
         // 🚀 TEMPORARY: Bypass JWT for testing (Uncomment for authentication)
-        // var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        // if (userIdClaim == null) return Unauthorized();
-        // var userId = Guid.Parse(userIdClaim);
+        //  var userId = User.GetUserId();
 
         var users = await _userRepository.GetAllAsync();
 
@@ -54,9 +52,7 @@ public class UserController : ControllerBase
             return BadRequest(ModelState);
 
         // 🚀 Extract User ID from Azure Authentication JWT (Commented out for now)
-        // var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        // if (userIdClaim == null) return Unauthorized();
-        // var userId = Guid.Parse(userIdClaim); // ✅ Use Azure's provided UserID
+        // var userId = User.GetUserId();
 
         // 🚀 For Development: Use a Hardcoded User ID Until Azure Auth is Integrated
         var userId = Guid.NewGuid(); // Replace this when using Azure Auth
@@ -96,8 +92,7 @@ public class UserController : ControllerBase
     public async Task<ActionResult<UserResponseDto>> GetCurrentUser()
     {
         // Replace this with actual JWT claims extraction when Azure Auth is implemented
-        // var userEmailClaim = User.FindFirst(ClaimTypes.Email)?.Value;
-        // if (userEmailClaim == null) return Unauthorized();
+        //  var userEmail = User.GetUserEmail();
 
         // For development: Hardcode an email or accept it as a query param
         var userEmail = "3@example.com"; // Replace with actual test data
@@ -129,8 +124,7 @@ public class UserController : ControllerBase
     public async Task<ActionResult<List<string>>> GetCurrentUserRoles()
     {
         // Extract User ID from JWT (Commented out until Azure Auth is enabled)
-        // var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        // if (userIdClaim == null) return Unauthorized();
+        //  var userId = User.GetUserId();
 
         // For Development: Use a hardcoded User ID instead
         var user = await _userRepository.GetByIdAsync(Guid.Parse("6eb8cf56-1ca7-46d4-ae60-2c4d778d6459"));
@@ -146,8 +140,7 @@ public class UserController : ControllerBase
     public async Task<IActionResult> UpdateUserRoles([FromBody] UserRoleUpdateDto roleUpdateDto)
     {
         // Extract User ID from JWT (Commented out until Azure Auth is enabled)
-        // var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        // if (userIdClaim == null) return Unauthorized();
+        // var userId = User.GetUserId();
 
         // For Development: Use a hardcoded User ID instead
         var userToUpdate = await _userRepository.GetByIdAsync(Guid.Parse("6eb8cf56-1ca7-46d4-ae60-2c4d778d6459"));

@@ -2,9 +2,10 @@
 using Microsoft.EntityFrameworkCore;
 using Umbrella_Server.Data;
 using Umbrella_Server.Data.Repositories.Groups;
-using Umbrella_Server.DTOs.Group;
 using Umbrella_Server.DTOs.Member;
 using Umbrella_Server.Models;
+using Umbrella_Server.Security;
+
 
 namespace Umbrella_Server.Controllers
 {
@@ -25,6 +26,10 @@ namespace Umbrella_Server.Controllers
         [HttpGet("{groupId}")]
         public async Task<ActionResult<GroupResponseDto>> GetGroup(Guid groupId)
         {
+
+            //add logic to check is user is member first
+            //var userId = User.GetUserId(); 
+
             var group = await _context.Groups
                                       .Include(g => g.Members)
                                       .ThenInclude(m => m.User)
@@ -69,9 +74,7 @@ namespace Umbrella_Server.Controllers
         public async Task<ActionResult<GroupResponseDto>> CreateGroup([FromBody] GroupCreateDto groupCreateDto)
         {
             // 🚀 Extract User ID from JWT (Commented out until Azure Auth is enabled)
-            // var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            // if (userIdClaim == null) return Unauthorized();
-            // var userId = Guid.Parse(userIdClaim);
+            //   var userId = User.GetUserId(); 
 
             // 🚀 For Development: Use a Hardcoded User ID Until Azure Auth is Integrated
             var userId = Guid.Parse("ddf28569-ead9-49ba-a1e0-78e73fd261a8"); // Replace when JWT is active
